@@ -281,7 +281,7 @@ export function BookingSheet({ slot, minDuration, form, onFormChange, onClose }:
         </div>
 
         {/* CTAs */}
-        <div className="px-5 py-4 border-t border-gray-100 space-y-2">
+        <div className="px-5 py-4 border-t border-gray-100 space-y-2" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
           {!formValid && (
             <p className="text-xs text-gray-400 text-center -mb-1">Fyll i alla fält för att fortsätta</p>
           )}

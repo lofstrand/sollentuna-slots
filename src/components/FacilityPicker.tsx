@@ -182,7 +182,7 @@ export function FacilityPicker({ open, selected, facilities, onChange, onClose }
           {hasChildren ? (
             <button
               onClick={() => toggleExpNode(node)}
-              className="w-5 h-5 flex items-center justify-center text-gray-400 shrink-0 text-sm"
+              className="w-6 h-6 flex items-center justify-center text-gray-400 shrink-0 text-lg"
               aria-label={isExpanded ? 'Dölj' : 'Expandera'}
             >
               {isExpanded ? '▾' : '▸'}
@@ -233,7 +233,7 @@ export function FacilityPicker({ open, selected, facilities, onChange, onClose }
                   <div className="flex items-center gap-2 px-3 py-2.5">
                     <button
                       onClick={() => toggleExpGroup(group)}
-                      className="w-6 h-6 flex items-center justify-center text-gray-400 shrink-0 text-base"
+                      className="w-7 h-7 flex items-center justify-center text-gray-400 shrink-0 text-xl"
                       aria-label={isExpanded ? 'Dölj grupp' : 'Expandera grupp'}
                     >
                       {isExpanded ? '▾' : '▸'}
