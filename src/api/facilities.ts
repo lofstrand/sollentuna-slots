@@ -28,9 +28,7 @@ const FOOTBALL_VENUES = new Set([
   'Viby BP',
 ])
 
-const FACILITIES_URL = import.meta.env.PROD
-  ? 'https://sollentuna.interbookfri.se/APIBooking/GetSearchBookableFacilityObjectsFilterLists'
-  : '/api/facilities'
+const FACILITIES_URL = '/api/facilities'
 
 export async function fetchFacilities(): Promise<Facility[]> {
   const res = await fetch(FACILITIES_URL)

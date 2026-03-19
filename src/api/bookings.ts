@@ -8,9 +8,7 @@ export interface BookingsQueryParams {
 
 const CHUNK_SIZE = 20
 
-const BOOKINGS_URL = import.meta.env.PROD
-  ? 'https://sollentuna.interbookfri.se/BookingAPI/GetBookingsForSchedule'
-  : '/api/bookings'
+const BOOKINGS_URL = '/api/bookings'
 
 async function fetchBookingsChunk(
   resourceIds: number[],
