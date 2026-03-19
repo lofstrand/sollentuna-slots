@@ -24,11 +24,14 @@ export function SlotRow({ type, startMin, endMin, description, onBook }: SlotRow
   const duration = endMin - startMin
   const hours = Math.floor(duration / 60)
   const mins = duration % 60
-  const durationLabel = mins === 0 ? `${hours} h` : `${hours} h ${mins} min`
+  const durationLabel = [
+    hours > 0 && `${hours} h`,
+    mins > 0 && `${mins} min`,
+  ].filter(Boolean).join(' ')
 
   return (
     <div className={`flex items-center gap-3 px-3 py-2 rounded ${STYLES[type]}`}>
-      <span className="text-base leading-none">{ICONS[type]}</span>
+      <span className="text-base leading-none" aria-hidden="true">{ICONS[type]}</span>
       <div className="flex-1 min-w-0">
         <span className="font-medium text-sm">
           {minToTime(startMin)}–{minToTime(endMin)}
@@ -43,9 +46,9 @@ export function SlotRow({ type, startMin, endMin, description, onBook }: SlotRow
       {type === 'free' && onBook && (
         <button
           onClick={onBook}
-          className="shrink-0 bg-green-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg active:bg-green-700"
+          className="shrink-0 bg-green-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg active:bg-green-700 hover:bg-green-700"
         >
-          Boka
+          Förfrågan
         </button>
       )}
     </div>

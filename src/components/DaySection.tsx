@@ -57,6 +57,7 @@ export function DaySection({
     <section className="mb-4">
       <button
         onClick={() => setExpanded(e => !e)}
+        aria-expanded={isOpen}
         className="w-full flex items-center justify-between px-4 py-2.5 bg-gray-100 rounded-lg text-left"
       >
         <span className="font-semibold text-gray-800 capitalize">{formatDayLabel(date)}</span>

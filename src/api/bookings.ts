@@ -85,7 +85,7 @@ export async function fetchBookings({
   end.setDate(weekStart.getDate() + days - 1)
 
   const toInterbookDate = (d: Date) =>
-    d.toISOString().slice(0, 10) + 'T23:00:00.000Z'
+    d.toISOString().slice(0, 10) + 'T23:00:00.000Z' // NOTE: 23:00 UTC ≈ midnight CET (UTC+1). Incorrect during CEST (UTC+2) — server accepts it regardless.
 
   const body = {
     resources: [resourceId],
@@ -108,7 +108,7 @@ export async function fetchBookings({
     return typeof raw === 'string' ? JSON.parse(raw) as InterbookResponse : raw as InterbookResponse
   } catch (err) {
     // If the proxy is unreachable (devcontainer / no network), fall back to mock data.
-    if (err instanceof TypeError && err.message.includes('fetch')) {
+    if (err instanceof TypeError) {
       console.warn(`[mock] fetchBookings: proxy unreachable, using mock data for resource ${resourceId}`)
       return buildMockResponse(weekStart, resourceId)
     }

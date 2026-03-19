@@ -1,5 +1,5 @@
 import type { Facility, InterbookResponse, SelectedSlot } from '../types'
-import { computeFreeSlots, toDateString, stripHtml } from '../lib/schedule'
+import { computeFreeSlots, toDateString, stripHtml, timeToMin } from '../lib/schedule'
 import { SlotRow } from './SlotRow'
 
 interface FacilitySlotsProps {
@@ -66,11 +66,6 @@ export function FacilitySlots({
     description?: string
   }
 
-  function parseMin(timeStr: string): number {
-    const [h, m] = timeStr.split(':').map(Number)
-    return (h ?? 0) * 60 + (m ?? 0)
-  }
-
   const entries: RowEntry[] = []
 
   freeSlots.forEach((slot, i) => {
@@ -84,8 +79,8 @@ export function FacilitySlots({
         entries.push({
           key: `train-${i}`,
           type: 'training',
-          startMin: parseMin(e.start.slice(11, 16)),
-          endMin: parseMin(e.end.slice(11, 16)),
+          startMin: timeToMin(e.start.slice(11, 16)),
+          endMin: timeToMin(e.end.slice(11, 16)),
           description: stripHtml(e.description),
         })
       })
@@ -96,8 +91,8 @@ export function FacilitySlots({
         entries.push({
           key: `match-${i}`,
           type: 'match',
-          startMin: parseMin(e.start.slice(11, 16)),
-          endMin: parseMin(e.end.slice(11, 16)),
+          startMin: timeToMin(e.start.slice(11, 16)),
+          endMin: timeToMin(e.end.slice(11, 16)),
           description: stripHtml(e.description),
         })
       })
@@ -105,7 +100,14 @@ export function FacilitySlots({
 
   entries.sort((a, b) => a.startMin - b.startMin)
 
-  if (entries.length === 0) return null
+  if (entries.length === 0) {
+    return (
+      <div className="mb-2">
+        <p className="text-xs font-semibold text-gray-500 px-1 mb-1">{facility.name}</p>
+        <p className="text-xs text-gray-400 italic px-3 py-1">Inga tider</p>
+      </div>
+    )
+  }
 
   const rows = entries.map(entry => (
     <SlotRow

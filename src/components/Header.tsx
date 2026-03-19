@@ -2,7 +2,7 @@ import * as ToggleGroup from '@radix-ui/react-toggle-group'
 import * as Select from '@radix-ui/react-select'
 import * as Popover from '@radix-ui/react-popover'
 import type { DayFilter, Facility } from '../types'
-import { formatMonthLabel, formatListRangeLabel, toDateString } from '../lib/schedule'
+import { formatMonthLabel, formatListRangeLabel, toDateString, getToday } from '../lib/schedule'
 import { FETCH_DAYS } from '../constants'
 import sfkLogo from '../SFK_logo.svg'
 
@@ -74,7 +74,7 @@ export function Header({
 
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-2xl lg:max-w-5xl mx-auto">
         {/* Title */}
         <div className="px-4 pt-3 pb-1">
           <h1 className="text-base font-bold text-gray-900 flex items-center gap-2">
@@ -95,11 +95,13 @@ export function Header({
         </div>
 
         {/* Controls */}
-        <div className="flex items-center gap-2 px-4 pb-3 overflow-x-auto">
+        <div className="relative">
+          <div className="absolute right-0 top-0 bottom-3 w-8 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none md:hidden" />
+          <div className="flex items-center gap-2 px-4 pb-3 overflow-x-auto md:overflow-visible md:flex-wrap">
           {/* Prev button */}
           <button
             onClick={() => onNavigate(-1)}
-            className="shrink-0 w-8 h-8 rounded-lg bg-gray-100 text-gray-600 flex items-center justify-center active:bg-gray-200 text-lg"
+            className={`shrink-0 w-8 h-8 rounded-lg bg-gray-100 text-gray-600 flex items-center justify-center active:bg-gray-200 text-lg${viewMode === 'calendar' ? ' hidden' : ''}`}
             aria-label={viewMode === 'calendar' ? 'Föregående månad' : 'Föregående period'}
           >
             ‹
@@ -133,10 +135,18 @@ export function Header({
           {/* Next button */}
           <button
             onClick={() => onNavigate(1)}
-            className="shrink-0 w-8 h-8 rounded-lg bg-gray-100 text-gray-600 flex items-center justify-center active:bg-gray-200 text-lg"
+            className={`shrink-0 w-8 h-8 rounded-lg bg-gray-100 text-gray-600 flex items-center justify-center active:bg-gray-200 text-lg${viewMode === 'calendar' ? ' hidden' : ''}`}
             aria-label={viewMode === 'calendar' ? 'Nästa månad' : 'Nästa period'}
           >
             ›
+          </button>
+
+          {/* Today button */}
+          <button
+            onClick={() => onViewDateChange(getToday())}
+            className="shrink-0 text-xs font-medium px-2.5 py-1.5 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 active:bg-gray-200"
+          >
+            Idag
           </button>
 
           <div className="w-px h-5 bg-gray-200 shrink-0" />
@@ -213,7 +223,7 @@ export function Header({
               showBooked ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-500'
             }`}
           >
-            <span>🏃</span>
+            <span aria-hidden="true">🏃</span>
             <span>{showBooked ? 'Dölj bokade' : 'Visa bokade'}</span>
           </button>
 
@@ -241,6 +251,7 @@ export function Header({
               📅
             </ToggleGroup.Item>
           </ToggleGroup.Root>
+          </div>
         </div>
       </div>
     </header>

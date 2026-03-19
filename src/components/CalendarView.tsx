@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import type { UseQueryResult } from '@tanstack/react-query'
 import type { DayFilter, Facility, InterbookResponse, SelectedSlot } from '../types'
 import {
@@ -6,6 +6,7 @@ import {
   isVisibleDay,
   isPast,
   formatDayLabel,
+  formatMonthLabel,
   toDateString,
   computeFreeSlots,
 } from '../lib/schedule'
@@ -20,6 +21,7 @@ interface CalendarViewProps {
   minDuration: number
   showBooked: boolean
   onBook: (slot: SelectedSlot) => void
+  onNavigate: (direction: -1 | 1) => void
 }
 
 const DAY_HEADERS = ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön']
@@ -56,17 +58,35 @@ export function CalendarView({
   minDuration,
   showBooked,
   onBook,
+  onNavigate,
 }: CalendarViewProps) {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
 
-  const queriesByFacilityId = Object.fromEntries(
-    facilityIds.map((id, i) => [id, queries[i]!]),
+  useEffect(() => {
+    setSelectedDate(null)
+  }, [viewDate.getFullYear(), viewDate.getMonth()])
+
+  const queriesByFacilityId = useMemo(
+    () => Object.fromEntries(facilityIds.map((id, i) => [id, queries[i]])),
+    [facilityIds, queries],
   )
-  const visibleFacilities = facilities.filter(f => facilityIds.includes(f.id))
+  const visibleFacilities = useMemo(
+    () => facilities.filter(f => facilityIds.includes(f.id)),
+    [facilities, facilityIds],
+  )
 
   const year  = viewDate.getFullYear()
   const month = viewDate.getMonth()
   const monthDates = getMonthDates(year, month)
+
+  const availabilityMap = useMemo(() => {
+    const map: Record<string, Availability> = {}
+    for (const date of monthDates) {
+      const dateStr = toDateString(date)
+      map[dateStr] = getDayAvailability(facilityIds, queriesByFacilityId, dateStr, minDuration)
+    }
+    return map
+  }, [facilityIds, queriesByFacilityId, monthDates, minDuration])
 
   // Build grid rows: pad start with nulls so the 1st lands on the right weekday
   const leadingNulls = mondayIndex(monthDates[0]!)
@@ -91,9 +111,24 @@ export function CalendarView({
   }
 
   return (
-    <div className="px-3 pt-2 pb-24">
-      {/* Calendar grid */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-4">
+    <div className="px-3 pt-2 pb-16 lg:pb-6 lg:grid lg:grid-cols-[1fr_320px] lg:gap-4 lg:items-start">
+      {/* Calendar grid — moves to the right on lg+ */}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-4 lg:mb-0 lg:order-last">
+        {/* Month navigation */}
+        <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100">
+          <button
+            onClick={() => onNavigate(-1)}
+            className="w-7 h-7 rounded-lg bg-gray-100 text-gray-600 flex items-center justify-center hover:bg-gray-200 active:bg-gray-200 text-lg"
+            aria-label="Föregående månad"
+          >‹</button>
+          <span className="text-sm font-semibold text-gray-700">{formatMonthLabel(viewDate)}</span>
+          <button
+            onClick={() => onNavigate(1)}
+            className="w-7 h-7 rounded-lg bg-gray-100 text-gray-600 flex items-center justify-center hover:bg-gray-200 active:bg-gray-200 text-lg"
+            aria-label="Nästa månad"
+          >›</button>
+        </div>
+
         {/* Day-of-week headers */}
         <div className="grid grid-cols-7 border-b border-gray-100">
           {DAY_HEADERS.map(d => (
@@ -112,13 +147,19 @@ export function CalendarView({
               const past       = isPast(date)
               const isVisible  = isVisibleDay(date, dayFilter)
               const isSelected = dateStr === selectedDateStr
-              const avail      = getDayAvailability(facilityIds, queriesByFacilityId, dateStr, minDuration)
+              const avail      = availabilityMap[dateStr] ?? 'empty'
+
+              const availLabel =
+                avail === 'free' ? 'lediga tider' :
+                avail === 'busy' ? 'inga lediga tider' :
+                avail === 'loading' ? 'laddar' : ''
 
               return (
                 <button
                   key={di}
                   onClick={() => setSelectedDate(isSelected ? null : date)}
                   disabled={past || !isVisible}
+                  aria-label={`${formatDayLabel(date)}${availLabel ? `, ${availLabel}` : ''}`}
                   className={`flex flex-col items-center py-2 transition-colors
                     ${isSelected ? 'bg-blue-50' : 'active:bg-gray-50'}
                     ${past || !isVisible ? 'opacity-25 cursor-default' : ''}
@@ -158,38 +199,42 @@ export function CalendarView({
         </div>
       </div>
 
-      {/* Day detail panel */}
-      {selectedDate && isVisibleDay(selectedDate, dayFilter) && (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-            <h2 className="font-semibold text-gray-800 capitalize">
-              {formatDayLabel(selectedDate)}
-            </h2>
-            <button
-              onClick={() => setSelectedDate(null)}
-              className="text-gray-400 text-lg px-1"
-              aria-label="Stäng"
-            >
-              ✕
-            </button>
-          </div>
-          <div className="px-3 py-3 space-y-1">
-            {visibleFacilities.map(facility => (
-              <FacilitySlots
-                key={facility.id}
-                facility={facility}
-                data={queriesByFacilityId[facility.id]?.data}
-                isLoading={queriesByFacilityId[facility.id]?.isLoading ?? false}
-                isError={queriesByFacilityId[facility.id]?.isError ?? false}
-                date={selectedDate}
-                minDuration={minDuration}
-                showBooked={showBooked}
-                onBook={onBook}
-              />
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Day detail panel — hidden on mobile unless a date is selected; always visible on lg+ */}
+      <div className={`bg-white rounded-xl border border-gray-200 overflow-hidden ${selectedDate && isVisibleDay(selectedDate, dayFilter) ? '' : 'hidden lg:flex lg:items-center lg:justify-center lg:min-h-48'}`}>
+        {selectedDate && isVisibleDay(selectedDate, dayFilter) ? (
+          <>
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+              <h2 className="font-semibold text-gray-800 capitalize">
+                {formatDayLabel(selectedDate)}
+              </h2>
+              <button
+                onClick={() => setSelectedDate(null)}
+                className="text-gray-400 text-lg px-1"
+                aria-label="Stäng"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="px-3 py-3 space-y-1">
+              {visibleFacilities.map(facility => (
+                <FacilitySlots
+                  key={facility.id}
+                  facility={facility}
+                  data={queriesByFacilityId[facility.id]?.data}
+                  isLoading={queriesByFacilityId[facility.id]?.isLoading ?? false}
+                  isError={queriesByFacilityId[facility.id]?.isError ?? false}
+                  date={selectedDate}
+                  minDuration={minDuration}
+                  showBooked={showBooked}
+                  onBook={onBook}
+                />
+              ))}
+            </div>
+          </>
+        ) : (
+          <p className="text-sm text-gray-400 px-6 text-center">Välj ett datum för att se lediga tider.</p>
+        )}
+      </div>
     </div>
   )
 }

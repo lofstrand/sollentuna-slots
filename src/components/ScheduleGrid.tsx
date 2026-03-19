@@ -27,7 +27,7 @@ export function ScheduleGrid({
   const dates = getWindowDates(startDate).filter(d => isVisibleDay(d, dayFilter) && !isPast(d))
 
   const queriesByFacilityId = Object.fromEntries(
-    facilityIds.map((id, i) => [id, queries[i]!]),
+    facilityIds.map((id, i) => [id, queries[i]]),
   )
 
   if (facilityIds.length === 0) {
@@ -39,7 +39,8 @@ export function ScheduleGrid({
   }
 
   return (
-    <div className="px-3 pt-2 pb-24">
+    <div className="px-3 pt-2 pb-16 lg:pb-6">
+      <div className="lg:grid lg:grid-cols-2 lg:gap-x-4">
       {dates.map(date => (
         <DaySection
           key={date.toISOString()}
@@ -52,6 +53,7 @@ export function ScheduleGrid({
           onBook={onBook}
         />
       ))}
+      </div>
     </div>
   )
 }

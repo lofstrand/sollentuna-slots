@@ -2,7 +2,7 @@ import { useRef, useState, useEffect } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import * as Slider from '@radix-ui/react-slider'
 import type { BookingFormState, SelectedSlot } from '../types'
-import { minToTime } from '../lib/schedule'
+import { minToTime, formatDayLabel } from '../lib/schedule'
 import { applyTemplate } from '../lib/template'
 import { EMAIL_TEMPLATE, BOOKING_EMAIL, BOOKING_EMAIL_SUBJECT, MIN_BOOKING_DURATION } from '../constants'
 
@@ -57,22 +57,22 @@ export function BookingSheet({ slot, minDuration, form, onFormChange, onClose }:
   const safeStart = Math.max(slotStart, Math.min(bookStart, slotEnd - STEP))
   const safeEnd   = Math.max(safeStart + STEP, Math.min(bookEnd, slotEnd))
 
-  function handleSlider([s, e]: number[]) {
+  function handleSlider([s, e]: [number, number]) {
     // Enforce minDuration — if thumbs would be too close, push the other one
-    if (e! - s! < MIN_BOOKING_DURATION) {
+    if (e - s < MIN_BOOKING_DURATION) {
       // Decide which thumb moved by comparing distance
-      if (Math.abs(s! - safeStart) > Math.abs(e! - safeEnd)) {
+      if (Math.abs(s - safeStart) > Math.abs(e - safeEnd)) {
         // end thumb moved
-        setBookEnd(Math.min(slotEnd, s! + MIN_BOOKING_DURATION))
-        setBookStart(s!)
+        setBookEnd(Math.min(slotEnd, s + MIN_BOOKING_DURATION))
+        setBookStart(s)
       } else {
         // start thumb moved
-        setBookStart(Math.max(slotStart, e! - MIN_BOOKING_DURATION))
-        setBookEnd(e!)
+        setBookStart(Math.max(slotStart, e - MIN_BOOKING_DURATION))
+        setBookEnd(e)
       }
     } else {
-      setBookStart(s!)
-      setBookEnd(e!)
+      setBookStart(s)
+      setBookEnd(e)
     }
   }
 
@@ -96,6 +96,8 @@ export function BookingSheet({ slot, minDuration, form, onFormChange, onClose }:
   const durationLabel = [durationH > 0 && `${durationH} h`, durationM > 0 && `${durationM} min`]
     .filter(Boolean).join(' ')
 
+  const slotDate = slot ? new Date(slot.date + 'T00:00:00') : null
+
   const onskadTid = slot ? `${slot.facilityName}, ${slot.date}, ${minToTime(safeStart)}–${minToTime(safeEnd)}` : ''
 
   const emailBody = applyTemplate(EMAIL_TEMPLATE, {
@@ -108,17 +110,21 @@ export function BookingSheet({ slot, minDuration, form, onFormChange, onClose }:
 
   const mailtoHref = `mailto:${BOOKING_EMAIL}?subject=${encodeURIComponent(BOOKING_EMAIL_SUBJECT)}&body=${encodeURIComponent(emailBody)}`
 
+  const formValid = !!(form.lagNamn && form.ledarNamn && form.ledarMail && form.ledarTel)
+
+  const [copied, setCopied] = useState(false)
+
   async function handleCopy() {
     try {
       await navigator.clipboard.writeText(emailBody)
-      alert('Kopierat!')
     } catch {
       if (textareaRef.current) {
         textareaRef.current.select()
         document.execCommand('copy')
-        alert('Kopierat!')
       }
     }
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   function update(field: keyof BookingFormState, value: string) {
@@ -132,11 +138,11 @@ export function BookingSheet({ slot, minDuration, form, onFormChange, onClose }:
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40" />
         <Dialog.Content
-          className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl max-h-[92vh] flex flex-col shadow-2xl focus:outline-none"
+          className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl max-h-[92vh] flex flex-col shadow-2xl focus:outline-none md:bottom-auto md:top-1/2 md:left-1/2 md:right-auto md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-lg md:rounded-2xl md:max-h-[85vh]"
           aria-describedby={undefined}
         >
-        {/* Handle */}
-        <div className="flex justify-center pt-3 pb-1">
+        {/* Handle — hidden on md+ where it becomes a centered modal */}
+        <div className="flex justify-center pt-3 pb-1 md:hidden">
           <div className="w-10 h-1 bg-gray-300 rounded-full" />
         </div>
 
@@ -145,7 +151,8 @@ export function BookingSheet({ slot, minDuration, form, onFormChange, onClose }:
           <div className="flex items-start justify-between">
             <div>
               <Dialog.Title className="font-bold text-gray-900">{slot.facilityName}</Dialog.Title>
-              <p className="text-sm text-gray-500 mt-0.5">{slot.date}</p>
+              <p className="text-xs font-medium text-blue-600 mt-0.5">Bokningsförfrågan via e-post</p>
+              <p className="text-sm text-gray-500 mt-0.5">{slotDate ? formatDayLabel(slotDate) : ''}</p>
               <p className="text-xs text-gray-400 mt-0.5">
                 Tillgänglig {minToTime(slot.startMin)}–{minToTime(slot.endMin)}
               </p>
@@ -222,7 +229,16 @@ export function BookingSheet({ slot, minDuration, form, onFormChange, onClose }:
 
           <div className="border-t border-gray-100" />
 
-          <h3 className="font-semibold text-gray-800">Kontaktuppgifter</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-gray-800">Kontaktuppgifter</h3>
+            <button
+              type="button"
+              onClick={() => onFormChange({ lagNamn: '', ledarNamn: '', ledarMail: '', ledarTel: '' })}
+              className="text-xs text-gray-400 hover:text-gray-600"
+            >
+              Rensa
+            </button>
+          </div>
           <div className="space-y-3">
             <Field
               label="Lag / förening"
@@ -259,25 +275,40 @@ export function BookingSheet({ slot, minDuration, form, onFormChange, onClose }:
               readOnly
               value={emailBody}
               rows={10}
-              className="w-full text-xs font-mono text-gray-600 bg-gray-50 border border-gray-200 rounded-lg p-3 resize-none"
+              className="w-full text-xs font-mono text-gray-600 bg-gray-100 border border-gray-200 rounded-lg p-3 resize-none cursor-default"
             />
           </div>
         </div>
 
         {/* CTAs */}
-        <div className="px-5 py-4 border-t border-gray-100 flex gap-3">
-          <a
-            href={mailtoHref}
-            className="flex-1 bg-blue-600 text-white text-sm font-semibold py-3 rounded-xl text-center active:bg-blue-700"
-          >
-            Öppna i mailklient
-          </a>
-          <button
-            onClick={handleCopy}
-            className="flex-1 bg-gray-100 text-gray-700 text-sm font-semibold py-3 rounded-xl active:bg-gray-200"
-          >
-            Kopiera text
-          </button>
+        <div className="px-5 py-4 border-t border-gray-100 space-y-2">
+          {!formValid && (
+            <p className="text-xs text-gray-400 text-center -mb-1">Fyll i alla fält för att fortsätta</p>
+          )}
+          <div className="flex gap-3">
+            <a
+              href={formValid ? mailtoHref : undefined}
+              onClick={!formValid ? e => e.preventDefault() : undefined}
+              className={`flex-1 text-sm font-semibold py-3 rounded-xl text-center transition-colors ${
+                formValid
+                  ? 'bg-blue-600 text-white active:bg-blue-700'
+                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+              }`}
+            >
+              Öppna i mailklient
+            </a>
+            <button
+              onClick={formValid ? handleCopy : undefined}
+              disabled={!formValid}
+              className={`flex-1 text-sm font-semibold py-3 rounded-xl transition-colors ${
+                formValid
+                  ? 'bg-gray-100 text-gray-700 active:bg-gray-200'
+                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+              }`}
+            >
+              {copied ? 'Kopierat ✓' : 'Kopiera text'}
+            </button>
+          </div>
         </div>
         </Dialog.Content>
       </Dialog.Portal>

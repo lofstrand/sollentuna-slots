@@ -14,6 +14,7 @@ export function FacilityPicker({ open, selected, facilities, onChange, onClose }
   const groups = [...new Set(facilities.map(f => f.group))]
 
   function toggle(id: number) {
+    if (selected.includes(id) && selected.length === 1) return
     onChange(selected.includes(id) ? selected.filter(s => s !== id) : [...selected, id])
   }
 
@@ -31,7 +32,7 @@ export function FacilityPicker({ open, selected, facilities, onChange, onClose }
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40" />
         <Dialog.Content
-          className="fixed inset-0 z-50 flex flex-col bg-white focus:outline-none"
+          className="fixed inset-0 z-50 flex flex-col bg-white focus:outline-none md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-sm md:max-h-[80vh] md:rounded-2xl"
           aria-describedby={undefined}
         >
           {/* Header */}
@@ -100,6 +101,8 @@ export function FacilityPicker({ open, selected, facilities, onChange, onClose }
 function GroupCheckbox({ checked, indeterminate }: { checked: boolean; indeterminate: boolean }) {
   return (
     <span
+      role="checkbox"
+      aria-checked={checked ? true : indeterminate ? 'mixed' : false}
       className={`w-5 h-5 rounded border-2 flex items-center justify-center text-xs font-bold shrink-0
         ${checked
           ? 'bg-blue-600 border-blue-600 text-white'

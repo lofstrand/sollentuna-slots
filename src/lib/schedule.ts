@@ -59,11 +59,7 @@ export function isVisibleDay(date: Date, filter: DayFilter): boolean {
 
 export function formatDayLabel(date: Date): string {
   const DAYS = ['Söndag', 'Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag']
-  const MONTHS = [
-    'januari', 'februari', 'mars', 'april', 'maj', 'juni',
-    'juli', 'augusti', 'september', 'oktober', 'november', 'december',
-  ]
-  return `${DAYS[date.getDay()]} ${date.getDate()} ${MONTHS[date.getMonth()]}`
+  return `${DAYS[date.getDay()]} ${date.getDate()} ${MONTHS_LONG[date.getMonth()]!.toLowerCase()}`
 }
 
 function getISOWeek(date: Date): number {

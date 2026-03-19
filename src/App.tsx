@@ -38,8 +38,8 @@ export default function App() {
   const [viewDate, setViewDate] = useState<Date>(getToday)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [selectedSlot, setSelectedSlot] = useState<SelectedSlot | null>(null)
-  const [viewMode, setViewMode] = useState<ViewMode>('list')
-  const [showBooked, setShowBooked] = useState(false)
+  const [viewMode, setViewMode] = useLocalStorage<ViewMode>('sbf_viewMode', 'list')
+  const [showBooked, setShowBooked] = useLocalStorage<boolean>('sbf_showBooked', false)
 
   // Derive fetch window from viewMode
   // List: 14 days from viewDate
@@ -72,10 +72,6 @@ export default function App() {
     })
   }
 
-  function handleViewDateChange(date: Date) {
-    setViewDate(date)
-  }
-
   function handleViewModeChange(mode: ViewMode) {
     setViewMode(mode)
     // When switching to calendar mode, snap to 1st of month
@@ -92,7 +88,7 @@ export default function App() {
         onOpenFacilityPicker={() => setPickerOpen(true)}
         viewDate={viewDate}
         onNavigate={handleNavigate}
-        onViewDateChange={handleViewDateChange}
+        onViewDateChange={d => setViewDate(d)}
         dayFilter={dayFilter}
         onDayFilterChange={setDayFilter}
         minDuration={minDuration}
@@ -103,7 +99,7 @@ export default function App() {
         onShowBookedChange={setShowBooked}
       />
 
-      <main className="max-w-2xl mx-auto">
+      <main className="max-w-2xl lg:max-w-5xl mx-auto">
         {viewMode === 'list' ? (
           <ScheduleGrid
             queries={queries}
@@ -125,6 +121,7 @@ export default function App() {
             minDuration={minDuration}
             showBooked={showBooked}
             onBook={setSelectedSlot}
+            onNavigate={handleNavigate}
           />
         )}
       </main>
