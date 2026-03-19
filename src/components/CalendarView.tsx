@@ -21,6 +21,7 @@ interface CalendarViewProps {
   viewDate: Date        // any date in the target month
   minDuration: number
   showBooked: boolean
+  showEmpty: boolean
   onBook: (slot: SelectedSlot) => void
   onNavigate: (direction: -1 | 1) => void
   onViewDateChange: (date: Date) => void
@@ -59,6 +60,7 @@ export function CalendarView({
   viewDate,
   minDuration,
   showBooked,
+  showEmpty,
   onBook,
   onNavigate,
   onViewDateChange,
@@ -302,7 +304,7 @@ export function CalendarView({
                     facility={facility}
                     data={queriesByFacilityId[facility.id]?.data}
                     isLoading={queriesByFacilityId[facility.id]?.isLoading ?? false}
-                    showEmpty={true}
+                    showEmpty={showEmpty}
                     isError={queriesByFacilityId[facility.id]?.isError ?? false}
                     date={selectedDate}
                     minDuration={minDuration}

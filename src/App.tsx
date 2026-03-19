@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import type { BookingFormState, FacilityQuery, SelectedSlot } from './types'
+import type { BookingFormState, SelectedSlot } from './types'
 import { getToday } from './lib/schedule'
 import { useLocalStorage } from './hooks/useLocalStorage'
-import { fetchBookings } from './api/bookings'
+import { useBookings } from './hooks/useBookings'
 import { fetchFacilities } from './api/facilities'
 import { FACILITIES as FALLBACK_FACILITIES, FETCH_DAYS } from './constants'
 import { Header, type ViewMode } from './components/Header'
@@ -42,29 +42,8 @@ export default function App() {
   const [showBooked, setShowBooked] = useLocalStorage<boolean>('sbf_showBooked', false)
   const [showEmpty, setShowEmpty] = useLocalStorage<boolean>('sbf_showEmpty', true)
 
-  // Derive fetch window from viewMode
-  // List: 14 days from viewDate
-  // Calendar: full month containing viewDate
-  const fetchStart = viewMode === 'calendar'
-    ? new Date(viewDate.getFullYear(), viewDate.getMonth(), 1)
-    : viewDate
-  const fetchDays = viewMode === 'calendar'
-    ? new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate()
-    : FETCH_DAYS
-
-  const { data: bookingsData, isLoading, isError, refetch } = useQuery({
-    queryKey: ['bookings', facilityIds, fetchStart.toISOString(), fetchDays] as const,
-    queryFn: () => fetchBookings({ resourceIds: facilityIds, weekStart: fetchStart, days: fetchDays }),
-    staleTime: 60 * 60 * 1000,
-    retry: 2,
-    enabled: facilityIds.length > 0,
-  })
-
-  const queries: FacilityQuery[] = facilityIds.map(id => ({
-    data: bookingsData?.[id],
-    isLoading,
-    isError,
-  }))
+  // Centralized booking data — see src/hooks/useBookings.ts
+  const { queries, isError, refetch } = useBookings({ facilityIds, viewDate, viewMode })
 
   function handleNavigate(direction: -1 | 1) {
     setViewDate(prev => {
@@ -145,6 +124,7 @@ export default function App() {
             viewDate={viewDate}
             minDuration={minDuration}
             showBooked={showBooked}
+            showEmpty={showEmpty}
             onBook={setSelectedSlot}
             onNavigate={handleNavigate}
             onViewDateChange={d => setViewDate(d)}
