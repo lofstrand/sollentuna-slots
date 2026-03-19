@@ -34,9 +34,9 @@ football pitch time slots in Sollentuna municipality.
 - **Facility IDs in fallback list are placeholders** — `src/constants.ts` uses sequential IDs (1–17)
   as a fallback. The live facility list is fetched dynamically from Interbook on startup, so this
   only matters if that request fails.
-- **Mock fallback active in devcontainer** — `src/api/bookings.ts` falls back to generated mock
-  data when the proxy is unreachable (network `TypeError`). Remove or gate this once deployed
-  with a real proxy.
+- **Production CORS unverified** — the production build calls the Interbook API directly from the
+  browser. If CORS blocks requests from the GitLab Pages domain, a server-side proxy will be
+  needed (Cloudflare Worker or similar). Verify once deployed and add a proxy if required.
 
 ### Out of Scope for v1
 
