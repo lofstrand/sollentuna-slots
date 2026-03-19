@@ -23,11 +23,40 @@ export async function onRequestOptions() {
 
 export async function onRequestPost(context) {
   const body = await context.request.text()
-  const upstream = await fetch(UPSTREAM_URL, {
+
+  // Use redirect: 'manual' so POST doesn't get converted to GET on 3xx
+  let upstream = await fetch(UPSTREAM_URL, {
     method: 'POST',
     headers: UPSTREAM_HEADERS,
+    redirect: 'manual',
     body,
   })
+
+  // Follow redirects manually, preserving POST method
+  if ([301, 302, 303, 307, 308].includes(upstream.status)) {
+    const location = upstream.headers.get('Location')
+    if (location) {
+      upstream = await fetch(new URL(location, UPSTREAM_URL).href, {
+        method: 'POST',
+        headers: UPSTREAM_HEADERS,
+        redirect: 'manual',
+        body,
+      })
+    }
+  }
+
+  // Return upstream error info for debugging
+  if (!upstream.ok) {
+    const text = await upstream.text()
+    return new Response(
+      JSON.stringify({ error: `Upstream ${upstream.status}`, body: text.slice(0, 500) }),
+      {
+        status: 502,
+        headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
+      },
+    )
+  }
+
   const data = await upstream.arrayBuffer()
   return new Response(data, {
     status: upstream.status,
