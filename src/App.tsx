@@ -43,7 +43,7 @@ export default function App() {
   const [showEmpty, setShowEmpty] = useLocalStorage<boolean>('sbf_showEmpty', true)
 
   // Centralized booking data — see src/hooks/useBookings.ts
-  const { queries, isError, refetch } = useBookings({ facilityIds, viewDate, viewMode })
+  const { queries, isError, refetch } = useBookings({ facilityIds, viewDate })
 
   function handleNavigate(direction: -1 | 1) {
     setViewDate(prev => {
