@@ -171,7 +171,7 @@ export function BookingSheet({ slot, minDuration, form, onFormChange, onClose }:
             <h3 className="font-semibold text-gray-800 mb-4">Önskad tid</h3>
 
             {/* Editable time inputs */}
-            <div className="flex items-center gap-2 mb-5">
+            <div className="flex items-center gap-2 mb-1">
               <div className="flex-1">
                 <label className="block text-xs font-medium text-gray-500 mb-1">Från</label>
                 <input
@@ -195,8 +195,8 @@ export function BookingSheet({ slot, minDuration, form, onFormChange, onClose }:
                   className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
               </div>
-              <span className="text-xs text-gray-400 mt-5 shrink-0 w-16 text-right">{durationLabel}</span>
             </div>
+            <p className="text-xs text-gray-400 text-right mb-4">{durationLabel}</p>
 
             {/* Range slider */}
             <Slider.Root
