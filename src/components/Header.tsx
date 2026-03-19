@@ -65,9 +65,7 @@ export function Header({
         </div>
 
         {/* Controls */}
-        <div className="relative">
-          <div className="absolute right-0 top-0 bottom-3 w-8 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none md:hidden" />
-          <div className="flex items-center gap-2 px-4 pb-3 overflow-x-auto md:overflow-visible md:flex-wrap">
+        <div className="flex items-center gap-2 px-4 pb-3 flex-wrap">
 
           <div className="w-px h-5 bg-gray-200 shrink-0" />
 
@@ -160,7 +158,6 @@ export function Header({
               <span>Kalender</span>
             </ToggleGroup.Item>
           </ToggleGroup.Root>
-          </div>
         </div>
       </div>
     </header>
