@@ -22,6 +22,12 @@ function SkeletonRow() {
   )
 }
 
+function facilityDisplayName(facility: Facility): string {
+  const lastComma = facility.name.lastIndexOf(',')
+  const leaf = lastComma !== -1 ? facility.name.slice(lastComma + 1).trim() : facility.name
+  return `${facility.group}, ${leaf}`
+}
+
 export function FacilitySlots({
   facility,
   data,
@@ -37,7 +43,7 @@ export function FacilitySlots({
   if (isLoading) {
     return (
       <div className="space-y-1.5 mb-2">
-        <p className="text-xs font-semibold text-gray-500 px-1">{facility.name}</p>
+        <p className="text-xs font-semibold text-gray-500 px-1">{facilityDisplayName(facility)}</p>
         <SkeletonRow />
         <SkeletonRow />
       </div>
@@ -47,7 +53,7 @@ export function FacilitySlots({
   if (isError || !data) {
     return (
       <div className="mb-2">
-        <p className="text-xs font-semibold text-gray-500 px-1">{facility.name}</p>
+        <p className="text-xs font-semibold text-gray-500 px-1">{facilityDisplayName(facility)}</p>
         <p className="text-xs text-red-500 px-3 py-2 bg-red-50 rounded">
           Kunde inte hämta data
         </p>
@@ -103,7 +109,7 @@ export function FacilitySlots({
   if (entries.length === 0) {
     return (
       <div className="mb-2">
-        <p className="text-xs font-semibold text-gray-500 px-1 mb-1">{facility.name}</p>
+        <p className="text-xs font-semibold text-gray-500 px-1 mb-1">{facilityDisplayName(facility)}</p>
         <p className="text-xs text-gray-400 italic px-3 py-1">Inga tider</p>
       </div>
     )
@@ -120,7 +126,7 @@ export function FacilitySlots({
         entry.type === 'free'
           ? () => onBook({
               facilityId: facility.id,
-              facilityName: facility.name,
+              facilityName: facilityDisplayName(facility),
               date: dateStr,
               startMin: entry.startMin,
               endMin: entry.endMin,
@@ -132,7 +138,7 @@ export function FacilitySlots({
 
   return (
     <div className="mb-2">
-      <p className="text-xs font-semibold text-gray-500 px-1 mb-1">{facility.name}</p>
+      <p className="text-xs font-semibold text-gray-500 px-1 mb-1">{facilityDisplayName(facility)}</p>
       <div className="space-y-1">{rows}</div>
     </div>
   )

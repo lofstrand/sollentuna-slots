@@ -1,8 +1,10 @@
-import { useState, useEffect, useMemo } from 'react'
-import type { UseQueryResult } from '@tanstack/react-query'
-import type { DayFilter, Facility, InterbookResponse, SelectedSlot } from '../types'
+import { useState, useRef, useMemo } from 'react'
+import * as Popover from '@radix-ui/react-popover'
+import type { DayFilter, Facility, FacilityQuery, SelectedSlot } from '../types'
 import {
   getMonthDates,
+  getToday,
+  getNextFriday,
   isVisibleDay,
   isPast,
   formatDayLabel,
@@ -13,7 +15,7 @@ import {
 import { FacilitySlots } from './FacilitySlots'
 
 interface CalendarViewProps {
-  queries: UseQueryResult<InterbookResponse>[]
+  queries: FacilityQuery[]
   facilityIds: number[]
   facilities: Facility[]
   viewDate: Date        // any date in the target month
@@ -22,6 +24,7 @@ interface CalendarViewProps {
   showBooked: boolean
   onBook: (slot: SelectedSlot) => void
   onNavigate: (direction: -1 | 1) => void
+  onViewDateChange: (date: Date) => void
 }
 
 const DAY_HEADERS = ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön']
@@ -35,7 +38,7 @@ type Availability = 'free' | 'busy' | 'empty' | 'loading'
 
 function getDayAvailability(
   facilityIds: number[],
-  queriesByFacilityId: Record<number, UseQueryResult<InterbookResponse>>,
+  queriesByFacilityId: Record<number, FacilityQuery>,
   dateStr: string,
   minDuration: number,
 ): Availability {
@@ -59,12 +62,40 @@ export function CalendarView({
   showBooked,
   onBook,
   onNavigate,
+  onViewDateChange,
 }: CalendarViewProps) {
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+  const monthInputValue = `${viewDate.getFullYear()}-${String(viewDate.getMonth() + 1).padStart(2, '0')}`
 
-  useEffect(() => {
-    setSelectedDate(null)
-  }, [viewDate.getFullYear(), viewDate.getMonth()])
+  function handleMonthInput(raw: string) {
+    if (!raw) return
+    const [y, m] = raw.split('-').map(Number)
+    if (y && m) onViewDateChange(new Date(y, m - 1, 1))
+  }
+  // Pre-select today if the initial view is the current month
+  const [selectedDate_, setSelectedDate] = useState<Date | null>(() => {
+    const today = getToday()
+    return today.getFullYear() === viewDate.getFullYear() &&
+      today.getMonth() === viewDate.getMonth()
+      ? today
+      : null
+  })
+
+  // When switching to Fre–Sön, jump to the next Friday if currently on Mon–Thu
+  const prevDayFilterRef = useRef(dayFilter)
+  if (prevDayFilterRef.current !== dayFilter) {
+    prevDayFilterRef.current = dayFilter
+    if (dayFilter === 'fri-sun') {
+      const ref = selectedDate_ ?? getToday()
+      const next = getNextFriday(ref)
+      if (next) setSelectedDate(next)
+    }
+  }
+
+  // Ignore selectedDate if it belongs to a different month than viewDate
+  const selectedDate = selectedDate_ &&
+    selectedDate_.getFullYear() === viewDate.getFullYear() &&
+    selectedDate_.getMonth() === viewDate.getMonth()
+    ? selectedDate_ : null
 
   const queriesByFacilityId = useMemo(
     () => Object.fromEntries(facilityIds.map((id, i) => [id, queries[i]])),
@@ -121,7 +152,27 @@ export function CalendarView({
             className="w-7 h-7 rounded-lg bg-gray-100 text-gray-600 flex items-center justify-center hover:bg-gray-200 active:bg-gray-200 text-lg"
             aria-label="Föregående månad"
           >‹</button>
-          <span className="text-sm font-semibold text-gray-700">{formatMonthLabel(viewDate)}</span>
+          <Popover.Root>
+            <Popover.Trigger className="text-sm font-semibold text-gray-700 px-2 py-1 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors">
+              {formatMonthLabel(viewDate)}
+            </Popover.Trigger>
+            <Popover.Portal>
+              <Popover.Content
+                sideOffset={6}
+                className="z-50 bg-white rounded-xl shadow-xl border border-gray-100 p-4 focus:outline-none"
+              >
+                <p className="text-xs font-medium text-gray-500 mb-2">Hoppa till månad</p>
+                <input
+                  type="month"
+                  defaultValue={monthInputValue}
+                  key={monthInputValue}
+                  onChange={e => handleMonthInput(e.target.value)}
+                  className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+                <Popover.Arrow className="fill-white drop-shadow-sm" />
+              </Popover.Content>
+            </Popover.Portal>
+          </Popover.Root>
           <button
             onClick={() => onNavigate(1)}
             className="w-7 h-7 rounded-lg bg-gray-100 text-gray-600 flex items-center justify-center hover:bg-gray-200 active:bg-gray-200 text-lg"
@@ -171,8 +222,8 @@ export function CalendarView({
                   `}>
                     {date.getDate()}
                   </span>
-                  <div className="mt-0.5 h-1.5 w-1.5 rounded-full">
-                    {avail === 'loading' && <div className="h-1.5 w-1.5 rounded-full bg-gray-300 animate-pulse" />}
+                  <div className="mt-0.5 h-1.5 flex items-center justify-center">
+                    {avail === 'loading' && <div className="h-1 w-5 rounded-full bg-gray-200 animate-pulse" />}
                     {avail === 'free'    && <div className="h-1.5 w-1.5 rounded-full bg-green-500" />}
                     {avail === 'busy'    && <div className="h-1.5 w-1.5 rounded-full bg-red-300" />}
                   </div>
@@ -215,21 +266,41 @@ export function CalendarView({
                 ✕
               </button>
             </div>
-            <div className="px-3 py-3 space-y-1">
-              {visibleFacilities.map(facility => (
-                <FacilitySlots
-                  key={facility.id}
-                  facility={facility}
-                  data={queriesByFacilityId[facility.id]?.data}
-                  isLoading={queriesByFacilityId[facility.id]?.isLoading ?? false}
-                  isError={queriesByFacilityId[facility.id]?.isError ?? false}
-                  date={selectedDate}
-                  minDuration={minDuration}
-                  showBooked={showBooked}
-                  onBook={onBook}
-                />
-              ))}
-            </div>
+            {facilityIds.some(id => queriesByFacilityId[id]?.isLoading) ? (
+              <div className="px-3 py-3 space-y-2 animate-pulse">
+                {visibleFacilities.map(f => (
+                  <div key={f.id} className="px-3 py-2 space-y-2">
+                    <div className="h-2.5 w-24 bg-gray-200 rounded" />
+                    {[1, 2].map(i => (
+                      <div key={i} className="flex items-center gap-3 py-1">
+                        <div className="h-4 w-4 rounded-full bg-gray-200 shrink-0" />
+                        <div className="flex-1 space-y-1.5">
+                          <div className="h-3 bg-gray-200 rounded w-1/3" />
+                          <div className="h-2 bg-gray-200 rounded w-1/2" />
+                        </div>
+                        <div className="h-7 w-16 bg-gray-200 rounded-lg shrink-0" />
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="px-3 py-3 space-y-1">
+                {visibleFacilities.map(facility => (
+                  <FacilitySlots
+                    key={facility.id}
+                    facility={facility}
+                    data={queriesByFacilityId[facility.id]?.data}
+                    isLoading={queriesByFacilityId[facility.id]?.isLoading ?? false}
+                    isError={queriesByFacilityId[facility.id]?.isError ?? false}
+                    date={selectedDate}
+                    minDuration={minDuration}
+                    showBooked={showBooked}
+                    onBook={onBook}
+                  />
+                ))}
+              </div>
+            )}
           </>
         ) : (
           <p className="text-sm text-gray-400 px-6 text-center">Välj ett datum för att se lediga tider.</p>

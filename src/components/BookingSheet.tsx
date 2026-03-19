@@ -195,7 +195,7 @@ export function BookingSheet({ slot, minDuration, form, onFormChange, onClose }:
                   className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
               </div>
-              <span className="text-xs text-gray-400 mt-5 shrink-0">{durationLabel}</span>
+              <span className="text-xs text-gray-400 mt-5 shrink-0 w-16 text-right">{durationLabel}</span>
             </div>
 
             {/* Range slider */}

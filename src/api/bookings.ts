@@ -1,7 +1,7 @@
 import type { InterbookResponse } from '../types'
 
 export interface BookingsQueryParams {
-  resourceId: number
+  resourceIds: number[]
   weekStart: Date
   days?: number
 }
@@ -28,6 +28,7 @@ function buildMockResponse(weekStart: Date, resourceId: number): InterbookRespon
         description: '<p>Träning IFK</p>',
         occasionType: 1,
         recurring: '',
+        facilityObjectId: String(resourceId),
       })
     }
 
@@ -42,6 +43,7 @@ function buildMockResponse(weekStart: Date, resourceId: number): InterbookRespon
         description: '<p>Match: IFK – Sollentuna</p>',
         occasionType: 2,
         recurring: '',
+        facilityObjectId: String(resourceId),
       })
       // Add a training in the evening so there's a free midday gap (varies by facility)
       if (seed % 3 !== 0) {
@@ -54,6 +56,7 @@ function buildMockResponse(weekStart: Date, resourceId: number): InterbookRespon
           description: '<p>Träning</p>',
           occasionType: 1,
           recurring: '',
+          facilityObjectId: String(resourceId),
         })
       }
     }
@@ -69,6 +72,7 @@ function buildMockResponse(weekStart: Date, resourceId: number): InterbookRespon
         description: '',
         occasionType: 0,
         recurring: '',
+        facilityObjectId: String(resourceId),
       })
     }
   }
@@ -77,10 +81,10 @@ function buildMockResponse(weekStart: Date, resourceId: number): InterbookRespon
 }
 
 export async function fetchBookings({
-  resourceId,
+  resourceIds,
   weekStart,
   days = 14,
-}: BookingsQueryParams): Promise<InterbookResponse> {
+}: BookingsQueryParams): Promise<Record<number, InterbookResponse>> {
   const end = new Date(weekStart)
   end.setDate(weekStart.getDate() + days - 1)
 
@@ -88,7 +92,7 @@ export async function fetchBookings({
     d.toISOString().slice(0, 10) + 'T23:00:00.000Z' // NOTE: 23:00 UTC ≈ midnight CET (UTC+1). Incorrect during CEST (UTC+2) — server accepts it regardless.
 
   const body = {
-    resources: [resourceId],
+    resources: resourceIds,
     start: toInterbookDate(weekStart),
     end: toInterbookDate(end),
     timestamp: new Date().toISOString(),
@@ -105,12 +109,27 @@ export async function fetchBookings({
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
 
     const raw = await res.json()
-    return typeof raw === 'string' ? JSON.parse(raw) as InterbookResponse : raw as InterbookResponse
+    const parsed: InterbookResponse = typeof raw === 'string' ? JSON.parse(raw) : raw
+
+    // Split flat event list back into per-facility responses
+    const result: Record<number, InterbookResponse> = {}
+    for (const id of resourceIds) {
+      result[id] = {
+        workDayStartHour: parsed.workDayStartHour,
+        workDayEndHour: parsed.workDayEndHour,
+        events: parsed.events.filter(e => Number(e.facilityObjectId) === id),
+      }
+    }
+    return result
   } catch (err) {
     // If the proxy is unreachable (devcontainer / no network), fall back to mock data.
     if (err instanceof TypeError) {
-      console.warn(`[mock] fetchBookings: proxy unreachable, using mock data for resource ${resourceId}`)
-      return buildMockResponse(weekStart, resourceId)
+      console.warn(`[mock] fetchBookings: proxy unreachable, using mock data for resources ${resourceIds.join(', ')}`)
+      const result: Record<number, InterbookResponse> = {}
+      for (const id of resourceIds) {
+        result[id] = buildMockResponse(weekStart, id)
+      }
+      return result
     }
     // Non-network errors (bad status, parse failure) bubble up so React Query can handle them.
     throw err

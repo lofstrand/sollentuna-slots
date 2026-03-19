@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { useQueries, useQuery } from '@tanstack/react-query'
-import type { BookingFormState, SelectedSlot } from './types'
+import { useQuery } from '@tanstack/react-query'
+import type { BookingFormState, FacilityQuery, SelectedSlot } from './types'
 import { getToday } from './lib/schedule'
 import { useLocalStorage } from './hooks/useLocalStorage'
 import { fetchBookings } from './api/bookings'
@@ -51,14 +51,19 @@ export default function App() {
     ? new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate()
     : FETCH_DAYS
 
-  const queries = useQueries({
-    queries: facilityIds.map(id => ({
-      queryKey: ['bookings', id, fetchStart.toISOString(), fetchDays] as const,
-      queryFn: () => fetchBookings({ resourceId: id, weekStart: fetchStart, days: fetchDays }),
-      staleTime: 5 * 60 * 1000,
-      retry: 2,
-    })),
+  const { data: bookingsData, isLoading, isError } = useQuery({
+    queryKey: ['bookings', facilityIds, fetchStart.toISOString(), fetchDays] as const,
+    queryFn: () => fetchBookings({ resourceIds: facilityIds, weekStart: fetchStart, days: fetchDays }),
+    staleTime: 60 * 60 * 1000,
+    retry: 2,
+    enabled: facilityIds.length > 0,
   })
+
+  const queries: FacilityQuery[] = facilityIds.map(id => ({
+    data: bookingsData?.[id],
+    isLoading,
+    isError,
+  }))
 
   function handleNavigate(direction: -1 | 1) {
     setViewDate(prev => {
@@ -86,11 +91,6 @@ export default function App() {
         facilityIds={facilityIds}
         facilities={facilities}
         onOpenFacilityPicker={() => setPickerOpen(true)}
-        viewDate={viewDate}
-        onNavigate={handleNavigate}
-        onViewDateChange={d => setViewDate(d)}
-        dayFilter={dayFilter}
-        onDayFilterChange={setDayFilter}
         minDuration={minDuration}
         onMinDurationChange={setMinDuration}
         viewMode={viewMode}
@@ -110,6 +110,11 @@ export default function App() {
             minDuration={minDuration}
             showBooked={showBooked}
             onBook={setSelectedSlot}
+            onNavigate={handleNavigate}
+            onDayFilterChange={f => {
+              setDayFilter(f)
+            }}
+            onViewDateChange={d => setViewDate(d)}
           />
         ) : (
           <CalendarView
@@ -122,6 +127,7 @@ export default function App() {
             showBooked={showBooked}
             onBook={setSelectedSlot}
             onNavigate={handleNavigate}
+            onViewDateChange={d => setViewDate(d)}
           />
         )}
       </main>

@@ -94,6 +94,15 @@ export function isPast(date: Date): boolean {
   return toDateString(date) < toDateString(new Date())
 }
 
+/** Returns the next Friday if date falls Mon–Thu, null if already Fri/Sat/Sun. */
+export function getNextFriday(date: Date): Date | null {
+  const day = date.getDay()
+  if (day === 5 || day === 6 || day === 0) return null
+  const next = new Date(date)
+  next.setDate(date.getDate() + (5 - day))
+  return next
+}
+
 export function timeToMin(t: string): number {
   const [h, m] = t.split(':').map(Number)
   return (h ?? 0) * 60 + (m ?? 0)

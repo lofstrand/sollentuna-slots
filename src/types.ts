@@ -10,11 +10,18 @@ export interface InterbookEvent {
   id: string | null
   start: string            // "2026-03-28T09:00"
   end: string
-  type: 'closed' | 'normal' | 'match'
+  type: 'closed' | 'normal' | 'match' | 'arrangement'
   status: 'booked' | ''
   description: string      // HTML string
   occasionType: number
   recurring: string
+  facilityObjectId: string
+}
+
+export interface FacilityQuery {
+  data: InterbookResponse | undefined
+  isLoading: boolean
+  isError: boolean
 }
 
 export interface InterbookResponse {

@@ -1,29 +1,8 @@
 import type { Facility } from '../types'
 
-const FOOTBALL_PAYLOAD = {
-  facilityObjectSearchType: 0,
-  searchText: null,
-  activityTypes: [{ Value: 1, Text: 'Fotboll' }],
-  facilityObjectTypes: [],
-  districts: [],
-  facilityObjects: [],
-  filterAvailableTimes: false,
-  isOvernight: false,
-  filterSubscriptions: false,
-  dateFrom: null,
-  dateTo: null,
-  timeFrom: null,
-  timeTo: null,
-  lengthOfBookingValue: 0,
-  weekdays: [false, false, false, false, false, false, false],
-}
-
-// Shape returned by the API (only the fields we care about)
 interface InterbookFacility {
   Value: number
   Text: string
-  GroupText?: string
-  FacilityName?: string
 }
 
 interface FacilitiesResponse {
@@ -31,21 +10,42 @@ interface FacilitiesResponse {
   FacilityObjects?: InterbookFacility[]
 }
 
+// Football venue names as returned by the API (first segment of the comma-separated Text)
+// First segment of each facility's comma-separated Text, trimmed.
+// "Sollentuna Fotbollshall " has a trailing space in the API — .trim() handles it.
+const FOOTBALL_VENUES = new Set([
+  'Norrvikens IP',
+  'Helenelunds IP',
+  'Kärrdals IP 1',
+  'Edsbergs sportfält',
+  'Sollentunavallen',
+  'Sollentuna Fotbollshall',
+  'Arena Rotebro',
+  'Rotebro BP',
+  'Bagarbyplanen',
+  'Tegelhagens BP',
+  'Vaxmora BP',
+  'Viby BP',
+])
+
 export async function fetchFacilities(): Promise<Facility[]> {
-  const res = await fetch('/api/facilities', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(FOOTBALL_PAYLOAD),
-  })
+  const res = await fetch('/api/facilities')
 
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
 
   const raw: FacilitiesResponse = await res.json()
   const list = raw.facilityObjects ?? raw.FacilityObjects ?? []
 
-  return list.map(f => ({
-    id: f.Value,
-    name: f.Text,
-    group: f.GroupText ?? f.FacilityName ?? 'Övrigt',
-  }))
+  return list
+    .map(f => {
+      const commaIdx = f.Text.indexOf(',')
+      if (commaIdx === -1) {
+        // Standalone venue — no sub-object hierarchy
+        return { id: f.Value, name: f.Text.trim(), group: f.Text.trim() }
+      }
+      const group = f.Text.slice(0, commaIdx).trim()
+      const name = f.Text.slice(commaIdx + 1).trim()
+      return { id: f.Value, name, group }
+    })
+    .filter(f => FOOTBALL_VENUES.has(f.group))
 }
