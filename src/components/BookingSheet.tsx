@@ -138,28 +138,29 @@ export function BookingSheet({ slot, minDuration, form, onFormChange, onClose }:
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40" />
         <Dialog.Content
-          className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl max-h-[92vh] flex flex-col shadow-2xl focus:outline-none md:bottom-auto md:top-1/2 md:left-1/2 md:right-auto md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-lg md:rounded-2xl md:max-h-[85vh]"
+          className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl max-h-[85vh] flex flex-col shadow-2xl focus:outline-none md:bottom-auto md:top-1/2 md:left-1/2 md:right-auto md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-lg md:rounded-2xl md:max-h-[85vh]"
           aria-describedby={undefined}
         >
-        {/* Handle — hidden on md+ where it becomes a centered modal */}
-        <div className="flex justify-center pt-3 pb-1 md:hidden">
-          <div className="w-10 h-1 bg-gray-300 rounded-full" />
-        </div>
+        {/* Handle + header — fixed at top, never scrolled away */}
+        <div className="shrink-0">
+          <div className="flex justify-center pt-3 pb-1 md:hidden">
+            <div className="w-10 h-1 bg-gray-300 rounded-full" />
+          </div>
 
-        {/* Slot info */}
-        <div className="px-5 py-3 border-b border-gray-100">
-          <div className="flex items-start justify-between">
-            <div>
-              <Dialog.Title className="font-bold text-gray-900">{slot.facilityName}</Dialog.Title>
-              <p className="text-xs font-medium text-blue-600 mt-0.5">Bokningsförfrågan via e-post</p>
-              <p className="text-sm text-gray-500 mt-0.5">{slotDate ? formatDayLabel(slotDate) : ''}</p>
-              <p className="text-xs text-gray-400 mt-0.5">
-                Tillgänglig {minToTime(slot.startMin)}–{minToTime(slot.endMin)}
-              </p>
+          <div className="px-5 py-3 border-b border-gray-100">
+            <div className="flex items-start justify-between">
+              <div>
+                <Dialog.Title className="font-bold text-gray-900">{slot.facilityName}</Dialog.Title>
+                <p className="text-xs font-medium text-blue-600 mt-0.5">Bokningsförfrågan via e-post</p>
+                <p className="text-sm text-gray-500 mt-0.5">{slotDate ? formatDayLabel(slotDate) : ''}</p>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Tillgänglig {minToTime(slot.startMin)}–{minToTime(slot.endMin)}
+                </p>
+              </div>
+              <Dialog.Close className="text-gray-400 text-xl px-1 py-1" aria-label="Stäng">
+                ✕
+              </Dialog.Close>
             </div>
-            <Dialog.Close className="text-gray-400 text-xl px-1" aria-label="Stäng">
-              ✕
-            </Dialog.Close>
           </div>
         </div>
 
@@ -168,35 +169,31 @@ export function BookingSheet({ slot, minDuration, form, onFormChange, onClose }:
 
           {/* Time range picker */}
           <div>
-            <h3 className="font-semibold text-gray-800 mb-4">Önskad tid</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-gray-800">Önskad tid</h3>
+              <span className="text-xs font-semibold text-green-700 bg-green-50 rounded-full px-2.5 py-0.5">{durationLabel}</span>
+            </div>
 
             {/* Editable time inputs */}
-            <div className="flex items-center gap-2 mb-1">
-              <div className="flex-1">
-                <label className="block text-xs font-medium text-gray-500 mb-1">Från</label>
-                <input
-                  type="time"
-                  defaultValue={minToTime(safeStart)}
-                  key={`start-${safeStart}`}
-                  onBlur={e => handleStartInput(e.target.value)}
-                  onChange={e => handleStartInput(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
-                />
-              </div>
-              <span className="text-gray-400 mt-5">–</span>
-              <div className="flex-1">
-                <label className="block text-xs font-medium text-gray-500 mb-1">Till</label>
-                <input
-                  type="time"
-                  defaultValue={minToTime(safeEnd)}
-                  key={`end-${safeEnd}`}
-                  onBlur={e => handleEndInput(e.target.value)}
-                  onChange={e => handleEndInput(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
-                />
-              </div>
+            <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden mb-5">
+              <input
+                type="time"
+                defaultValue={minToTime(safeStart)}
+                key={`start-${safeStart}`}
+                onBlur={e => handleStartInput(e.target.value)}
+                onChange={e => handleStartInput(e.target.value)}
+                className="flex-1 text-center py-3 text-sm font-medium text-gray-800 bg-white focus:outline-none focus:bg-blue-50"
+              />
+              <span className="text-gray-300 text-sm">–</span>
+              <input
+                type="time"
+                defaultValue={minToTime(safeEnd)}
+                key={`end-${safeEnd}`}
+                onBlur={e => handleEndInput(e.target.value)}
+                onChange={e => handleEndInput(e.target.value)}
+                className="flex-1 text-center py-3 text-sm font-medium text-gray-800 bg-white focus:outline-none focus:bg-blue-50"
+              />
             </div>
-            <p className="text-xs text-gray-400 text-right mb-4">{durationLabel}</p>
 
             {/* Range slider */}
             <Slider.Root
@@ -275,7 +272,7 @@ export function BookingSheet({ slot, minDuration, form, onFormChange, onClose }:
               readOnly
               value={emailBody}
               rows={10}
-              className="w-full text-xs font-mono text-gray-600 bg-gray-100 border border-gray-200 rounded-lg p-3 resize-none cursor-default"
+              className="w-full text-xs font-mono text-gray-600 bg-gray-200/70 border border-gray-300 rounded-lg p-3 resize-none cursor-default"
             />
           </div>
         </div>
