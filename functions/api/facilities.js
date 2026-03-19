@@ -2,6 +2,7 @@ const UPSTREAM_URL =
   'https://sollentuna.interbookfri.se/APIBooking/GetSearchBookableFacilityObjectsFilterLists'
 
 const UPSTREAM_HEADERS = {
+  Accept: 'application/json',
   'X-Requested-With': 'XMLHttpRequest',
   Origin: 'https://sollentuna.interbookfri.se',
   Referer: 'https://sollentuna.interbookfri.se/',

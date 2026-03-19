@@ -3,6 +3,7 @@ const UPSTREAM_URL =
 
 const UPSTREAM_HEADERS = {
   'Content-Type': 'application/json',
+  Accept: 'application/json',
   'X-Requested-With': 'XMLHttpRequest',
   Origin: 'https://sollentuna.interbookfri.se',
   Referer: 'https://sollentuna.interbookfri.se/',
@@ -23,6 +24,7 @@ export async function onRequestPost(context) {
   const upstream = await fetch(UPSTREAM_URL, {
     method: 'POST',
     headers: UPSTREAM_HEADERS,
+    redirect: 'manual',
     body,
   })
   const data = await upstream.arrayBuffer()
