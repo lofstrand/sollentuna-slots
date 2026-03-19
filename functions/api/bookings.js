@@ -26,7 +26,6 @@ export async function onRequestPost(context) {
   const upstream = await fetch(UPSTREAM_URL, {
     method: 'POST',
     headers: UPSTREAM_HEADERS,
-    redirect: 'manual',
     body,
   })
   const data = await upstream.arrayBuffer()
