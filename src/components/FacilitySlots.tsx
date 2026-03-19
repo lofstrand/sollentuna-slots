@@ -10,6 +10,7 @@ interface FacilitySlotsProps {
   date: Date
   minDuration: number
   showBooked: boolean
+  showEmpty: boolean
   onBook: (slot: SelectedSlot) => void
 }
 
@@ -36,6 +37,7 @@ export function FacilitySlots({
   date,
   minDuration,
   showBooked,
+  showEmpty,
   onBook,
 }: FacilitySlotsProps) {
   const dateStr = toDateString(date)
@@ -107,6 +109,7 @@ export function FacilitySlots({
   entries.sort((a, b) => a.startMin - b.startMin)
 
   if (entries.length === 0) {
+    if (!showEmpty) return null
     return (
       <div className="mb-2">
         <p className="text-xs font-semibold text-gray-500 px-1 mb-1">{facilityDisplayName(facility)}</p>

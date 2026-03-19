@@ -9,6 +9,7 @@ interface DaySectionProps {
   queriesByFacilityId: Record<number, FacilityQuery>
   minDuration: number
   showBooked: boolean
+  showEmpty: boolean
   onBook: (slot: SelectedSlot) => void
 }
 
@@ -39,6 +40,7 @@ export function DaySection({
   queriesByFacilityId,
   minDuration,
   showBooked,
+  showEmpty,
   onBook,
 }: DaySectionProps) {
   const dateStr = toDateString(date)
@@ -66,6 +68,7 @@ export function DaySection({
             date={date}
             minDuration={minDuration}
             showBooked={showBooked}
+            showEmpty={showEmpty}
             onBook={onBook}
           />
         ))}

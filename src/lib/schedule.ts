@@ -1,6 +1,14 @@
 import type { DayFilter, FreeSlot, InterbookEvent } from '../types'
 import { WORK_START_HOUR, WORK_END_HOUR } from '../constants'
 
+export function getMondayOf(date: Date): Date {
+  const d = new Date(date)
+  d.setHours(0, 0, 0, 0)
+  const day = d.getDay()
+  d.setDate(d.getDate() - (day === 0 ? 6 : day - 1))
+  return d
+}
+
 export function getMondayOfCurrentWeek(): Date {
   const d = new Date()
   const day = d.getDay()
@@ -26,21 +34,13 @@ const MONTHS_LONG = [
   'Januari', 'Februari', 'Mars', 'April', 'Maj', 'Juni',
   'Juli', 'Augusti', 'September', 'Oktober', 'November', 'December',
 ]
-const MONTHS_SHORT = [
-  'jan', 'feb', 'mar', 'apr', 'maj', 'jun',
-  'jul', 'aug', 'sep', 'okt', 'nov', 'dec',
-]
 
 export function formatMonthLabel(date: Date): string {
   return `${MONTHS_LONG[date.getMonth()]} ${date.getFullYear()}`
 }
 
-export function formatListRangeLabel(start: Date, days: number): string {
-  const end = new Date(start)
-  end.setDate(start.getDate() + days - 1)
-  const s = `${start.getDate()} ${MONTHS_SHORT[start.getMonth()]}`
-  const e = `${end.getDate()} ${MONTHS_SHORT[end.getMonth()]}`
-  return `${s} – ${e}`
+export function formatListRangeLabel(start: Date, _days: number): string {
+  return `Vecka ${getISOWeek(start)}`
 }
 
 export function getWindowDates(monday: Date, days = 14): Date[] {
@@ -62,7 +62,7 @@ export function formatDayLabel(date: Date): string {
   return `${DAYS[date.getDay()]} ${date.getDate()} ${MONTHS_LONG[date.getMonth()]!.toLowerCase()}`
 }
 
-function getISOWeek(date: Date): number {
+export function getISOWeek(date: Date): number {
   const d = new Date(date)
   d.setHours(0, 0, 0, 0)
   d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7))

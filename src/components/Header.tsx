@@ -15,9 +15,11 @@ interface HeaderProps {
   onViewModeChange: (v: ViewMode) => void
   showBooked: boolean
   onShowBookedChange: (v: boolean) => void
+  showEmpty: boolean
+  onShowEmptyChange: (v: boolean) => void
 }
 
-const MIN_DURATION_OPTIONS = [30, 45, 60, 90, 120]
+const MIN_DURATION_OPTIONS = [60, 90, 120]
 
 export function Header({
   facilityIds,
@@ -29,6 +31,8 @@ export function Header({
   onViewModeChange,
   showBooked,
   onShowBookedChange,
+  showEmpty,
+  onShowEmptyChange,
 }: HeaderProps) {
   const selectedNames = facilities.filter(f => facilityIds.includes(f.id))
   const facilityLabel =
@@ -118,6 +122,16 @@ export function Header({
           >
             <span aria-hidden="true">🏃</span>
             <span>{showBooked ? 'Dölj bokade' : 'Visa bokade'}</span>
+          </button>
+
+          {/* Show empty facilities toggle */}
+          <button
+            onClick={() => onShowEmptyChange(!showEmpty)}
+            className={`shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              !showEmpty ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-500'
+            }`}
+          >
+            {showEmpty ? 'Dölj utan tider' : 'Visa utan tider'}
           </button>
 
           <div className="w-px h-5 bg-gray-200 shrink-0" />

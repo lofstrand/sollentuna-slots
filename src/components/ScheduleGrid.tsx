@@ -1,9 +1,9 @@
 import * as ToggleGroup from '@radix-ui/react-toggle-group'
-import * as Popover from '@radix-ui/react-popover'
 import type { DayFilter, Facility, FacilityQuery, SelectedSlot } from '../types'
-import { getWindowDates, isVisibleDay, isPast, formatListRangeLabel, toDateString, getToday } from '../lib/schedule'
+import { getWindowDates, isVisibleDay, isPast, formatListRangeLabel, getToday, getMondayOf } from '../lib/schedule'
 import { FETCH_DAYS } from '../constants'
 import { DaySection } from './DaySection'
+import { DatePickerPopover } from './DatePickerPopover'
 
 interface ScheduleGridProps {
   queries: FacilityQuery[]
@@ -13,6 +13,7 @@ interface ScheduleGridProps {
   dayFilter: DayFilter
   minDuration: number
   showBooked: boolean
+  showEmpty: boolean
   onBook: (slot: SelectedSlot) => void
   onNavigate: (direction: -1 | 1) => void
   onDayFilterChange: (f: DayFilter) => void
@@ -27,25 +28,15 @@ export function ScheduleGrid({
   dayFilter,
   minDuration,
   showBooked,
+  showEmpty,
   onBook,
   onNavigate,
   onDayFilterChange,
   onViewDateChange,
 }: ScheduleGridProps) {
-  const dates = getWindowDates(startDate).filter(d => isVisibleDay(d, dayFilter) && !isPast(d))
-
-  const queriesByFacilityId = Object.fromEntries(
-    facilityIds.map((id, i) => [id, queries[i]]),
-  )
-
+  const dates = getWindowDates(startDate, FETCH_DAYS).filter(d => isVisibleDay(d, dayFilter) && !isPast(d))
+  const queriesByFacilityId = Object.fromEntries(facilityIds.map((id, i) => [id, queries[i]]))
   const navLabel = formatListRangeLabel(startDate, FETCH_DAYS)
-  const inputValue = toDateString(startDate)
-
-  function handleDateInput(raw: string) {
-    if (!raw) return
-    const d = new Date(raw + 'T00:00:00')
-    if (!isNaN(d.getTime())) onViewDateChange(d)
-  }
 
   if (facilityIds.length === 0) {
     return (
@@ -67,27 +58,16 @@ export function ScheduleGrid({
           ‹
         </button>
 
-        <Popover.Root>
-          <Popover.Trigger className="shrink-0 text-sm font-semibold text-gray-700 min-w-[110px] text-center px-2 py-1 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors">
-            {navLabel}
-          </Popover.Trigger>
-          <Popover.Portal>
-            <Popover.Content
-              sideOffset={6}
-              className="z-50 bg-white rounded-xl shadow-xl border border-gray-100 p-4 focus:outline-none"
-            >
-              <p className="text-xs font-medium text-gray-500 mb-2">Hoppa till datum</p>
-              <input
-                type="date"
-                defaultValue={inputValue}
-                key={inputValue}
-                onChange={e => handleDateInput(e.target.value)}
-                className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
-              />
-              <Popover.Arrow className="fill-white drop-shadow-sm" />
-            </Popover.Content>
-          </Popover.Portal>
-        </Popover.Root>
+        <DatePickerPopover
+          selected={startDate}
+          days={FETCH_DAYS}
+          onSelect={d => onViewDateChange(getMondayOf(d))}
+          trigger={
+            <button className="shrink-0 text-sm font-semibold text-gray-700 min-w-[110px] text-center px-2 py-1 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors">
+              {navLabel}
+            </button>
+          }
+        />
 
         <button
           onClick={() => onNavigate(1)}
@@ -106,7 +86,6 @@ export function ScheduleGrid({
 
         <div className="w-px h-5 bg-gray-200 shrink-0" />
 
-        {/* Day filter */}
         <ToggleGroup.Root
           type="single"
           value={dayFilter}
@@ -128,7 +107,7 @@ export function ScheduleGrid({
         </ToggleGroup.Root>
       </div>
 
-      <div className="lg:grid lg:grid-cols-2 lg:gap-x-4">
+      <div>
         {dates.map(date => (
           <DaySection
             key={date.toISOString()}
@@ -138,6 +117,7 @@ export function ScheduleGrid({
             queriesByFacilityId={queriesByFacilityId}
             minDuration={minDuration}
             showBooked={showBooked}
+            showEmpty={showEmpty}
             onBook={onBook}
           />
         ))}

@@ -22,8 +22,8 @@ const EMPTY_FORM: BookingFormState = {
 export default function App() {
   // Persisted state
   const [facilityIds, setFacilityIds] = useLocalStorage<number[]>('sbf_facilityIds', [2])
-  const [dayFilter, setDayFilter] = useLocalStorage<'fri-sun' | 'all'>('sbf_dayFilter', 'fri-sun')
-  const [minDuration, setMinDuration] = useLocalStorage<number>('sbf_minDuration', 90)
+  const [listDayFilter, setListDayFilter] = useLocalStorage<'fri-sun' | 'all'>('sbf_dayFilter', 'fri-sun')
+  const [minDuration, setMinDuration] = useLocalStorage<number>('sbf_minDuration', 60)
   const [form, setForm] = useLocalStorage<BookingFormState>('sbf_form', EMPTY_FORM)
 
   // Dynamic facility list — cached for the whole session, fetched once
@@ -40,6 +40,7 @@ export default function App() {
   const [selectedSlot, setSelectedSlot] = useState<SelectedSlot | null>(null)
   const [viewMode, setViewMode] = useLocalStorage<ViewMode>('sbf_viewMode', 'list')
   const [showBooked, setShowBooked] = useLocalStorage<boolean>('sbf_showBooked', false)
+  const [showEmpty, setShowEmpty] = useLocalStorage<boolean>('sbf_showEmpty', true)
 
   // Derive fetch window from viewMode
   // List: 14 days from viewDate
@@ -51,7 +52,7 @@ export default function App() {
     ? new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate()
     : FETCH_DAYS
 
-  const { data: bookingsData, isLoading, isError } = useQuery({
+  const { data: bookingsData, isLoading, isError, refetch } = useQuery({
     queryKey: ['bookings', facilityIds, fetchStart.toISOString(), fetchDays] as const,
     queryFn: () => fetchBookings({ resourceIds: facilityIds, weekStart: fetchStart, days: fetchDays }),
     staleTime: 60 * 60 * 1000,
@@ -79,9 +80,14 @@ export default function App() {
 
   function handleViewModeChange(mode: ViewMode) {
     setViewMode(mode)
-    // When switching to calendar mode, snap to 1st of month
     if (mode === 'calendar') {
       setViewDate(prev => new Date(prev.getFullYear(), prev.getMonth(), 1))
+    } else {
+      // When switching to list, clamp to today if viewDate is in the past
+      setViewDate(prev => {
+        const today = getToday()
+        return prev < today ? today : prev
+      })
     }
   }
 
@@ -97,7 +103,23 @@ export default function App() {
         onViewModeChange={handleViewModeChange}
         showBooked={showBooked}
         onShowBookedChange={setShowBooked}
+        showEmpty={showEmpty}
+        onShowEmptyChange={setShowEmpty}
       />
+
+      {isError && (
+        <div className="max-w-2xl lg:max-w-5xl mx-auto px-4 pt-3">
+          <div className="flex items-center justify-between gap-3 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">
+            <span>Kunde inte hämta tider. Kontrollera din anslutning.</span>
+            <button
+              onClick={() => refetch()}
+              className="shrink-0 font-semibold underline underline-offset-2 hover:text-red-900"
+            >
+              Försök igen
+            </button>
+          </div>
+        </div>
+      )}
 
       <main className="max-w-2xl lg:max-w-5xl mx-auto">
         {viewMode === 'list' ? (
@@ -106,14 +128,13 @@ export default function App() {
             facilityIds={facilityIds}
             facilities={facilities}
             startDate={viewDate}
-            dayFilter={dayFilter}
+            dayFilter={listDayFilter}
             minDuration={minDuration}
             showBooked={showBooked}
+            showEmpty={showEmpty}
             onBook={setSelectedSlot}
             onNavigate={handleNavigate}
-            onDayFilterChange={f => {
-              setDayFilter(f)
-            }}
+            onDayFilterChange={setListDayFilter}
             onViewDateChange={d => setViewDate(d)}
           />
         ) : (
@@ -122,7 +143,6 @@ export default function App() {
             facilityIds={facilityIds}
             facilities={facilities}
             viewDate={viewDate}
-            dayFilter={dayFilter}
             minDuration={minDuration}
             showBooked={showBooked}
             onBook={setSelectedSlot}

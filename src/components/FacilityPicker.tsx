@@ -160,18 +160,17 @@ export function FacilityPicker({ open, selected, facilities, onChange, onClose }
   }
 
   function toggleNode(node: TreeNode) {
-    const state = checkState(node.allIds, selectedSet)
-    if (state === 'checked') {
-      const next = selected.filter(id => !node.allIds.includes(id))
+    if (selectedSet.has(node.id)) {
+      const next = selected.filter(id => id !== node.id)
       if (next.length === 0) return
       onChange(next)
     } else {
-      onChange([...new Set([...selected, ...node.allIds])])
+      onChange([...selected, node.id])
     }
   }
 
   function renderNode(node: TreeNode, depth: number): React.ReactNode {
-    const state = checkState(node.allIds, selectedSet)
+    const state: CheckState = selectedSet.has(node.id) ? 'checked' : 'unchecked'
     const isExpanded = expandedNodes.has(node.id)
     const hasChildren = node.children.length > 0
     // depth 0 → 20px, depth 1 → 36px, depth 2 → 52px …
@@ -226,6 +225,8 @@ export function FacilityPicker({ open, selected, facilities, onChange, onClose }
               const isExpanded = expandedGroups.has(group)
               const tree = treeByGroup[group] ?? []
 
+              const selectedCount = ids.filter(id => selectedSet.has(id)).length
+
               return (
                 <div key={group} className="border-b border-gray-100 last:border-0">
                   {/* Group header */}
@@ -244,6 +245,11 @@ export function FacilityPicker({ open, selected, facilities, onChange, onClose }
                     >
                       {group}
                     </span>
+                    {!isExpanded && selectedCount > 0 && (
+                      <span className="text-xs font-semibold text-blue-600 bg-blue-50 rounded-full px-2 py-0.5 shrink-0">
+                        {selectedCount}
+                      </span>
+                    )}
                   </div>
 
                   {/* Tree nodes */}

@@ -1,11 +1,11 @@
-import { useState, useRef, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import * as Popover from '@radix-ui/react-popover'
-import type { DayFilter, Facility, FacilityQuery, SelectedSlot } from '../types'
+
+const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec']
+import type { Facility, FacilityQuery, SelectedSlot } from '../types'
 import {
   getMonthDates,
   getToday,
-  getNextFriday,
-  isVisibleDay,
   isPast,
   formatDayLabel,
   formatMonthLabel,
@@ -19,13 +19,13 @@ interface CalendarViewProps {
   facilityIds: number[]
   facilities: Facility[]
   viewDate: Date        // any date in the target month
-  dayFilter: DayFilter
   minDuration: number
   showBooked: boolean
   onBook: (slot: SelectedSlot) => void
   onNavigate: (direction: -1 | 1) => void
   onViewDateChange: (date: Date) => void
 }
+
 
 const DAY_HEADERS = ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön']
 
@@ -57,20 +57,14 @@ export function CalendarView({
   facilityIds,
   facilities,
   viewDate,
-  dayFilter,
   minDuration,
   showBooked,
   onBook,
   onNavigate,
   onViewDateChange,
 }: CalendarViewProps) {
-  const monthInputValue = `${viewDate.getFullYear()}-${String(viewDate.getMonth() + 1).padStart(2, '0')}`
+  const [pickerYear, setPickerYear] = useState(viewDate.getFullYear())
 
-  function handleMonthInput(raw: string) {
-    if (!raw) return
-    const [y, m] = raw.split('-').map(Number)
-    if (y && m) onViewDateChange(new Date(y, m - 1, 1))
-  }
   // Pre-select today if the initial view is the current month
   const [selectedDate_, setSelectedDate] = useState<Date | null>(() => {
     const today = getToday()
@@ -79,17 +73,6 @@ export function CalendarView({
       ? today
       : null
   })
-
-  // When switching to Fre–Sön, jump to the next Friday if currently on Mon–Thu
-  const prevDayFilterRef = useRef(dayFilter)
-  if (prevDayFilterRef.current !== dayFilter) {
-    prevDayFilterRef.current = dayFilter
-    if (dayFilter === 'fri-sun') {
-      const ref = selectedDate_ ?? getToday()
-      const next = getNextFriday(ref)
-      if (next) setSelectedDate(next)
-    }
-  }
 
   // Ignore selectedDate if it belongs to a different month than viewDate
   const selectedDate = selectedDate_ &&
@@ -152,24 +135,46 @@ export function CalendarView({
             className="w-7 h-7 rounded-lg bg-gray-100 text-gray-600 flex items-center justify-center hover:bg-gray-200 active:bg-gray-200 text-lg"
             aria-label="Föregående månad"
           >‹</button>
-          <Popover.Root>
-            <Popover.Trigger className="text-sm font-semibold text-gray-700 px-2 py-1 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors">
+          <Popover.Root onOpenChange={open => { if (open) setPickerYear(viewDate.getFullYear()) }}>
+            <Popover.Trigger className="text-sm font-semibold text-gray-700 px-2 py-1 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors capitalize">
               {formatMonthLabel(viewDate)}
             </Popover.Trigger>
             <Popover.Portal>
               <Popover.Content
                 sideOffset={6}
-                className="z-50 bg-white rounded-xl shadow-xl border border-gray-100 p-4 focus:outline-none"
+                className="z-50 w-56 bg-white rounded-xl shadow-xl border border-gray-100 p-3 focus:outline-none"
               >
-                <p className="text-xs font-medium text-gray-500 mb-2">Hoppa till månad</p>
-                <input
-                  type="month"
-                  defaultValue={monthInputValue}
-                  key={monthInputValue}
-                  onChange={e => handleMonthInput(e.target.value)}
-                  className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
-                />
-                <Popover.Arrow className="fill-white drop-shadow-sm" />
+                {/* Year navigation */}
+                <div className="flex items-center justify-between mb-3">
+                  <button
+                    onClick={() => setPickerYear(y => y - 1)}
+                    className="w-7 h-7 rounded-lg bg-gray-100 text-gray-600 flex items-center justify-center hover:bg-gray-200 text-lg leading-none"
+                  >‹</button>
+                  <span className="text-sm font-semibold text-gray-700">{pickerYear}</span>
+                  <button
+                    onClick={() => setPickerYear(y => y + 1)}
+                    className="w-7 h-7 rounded-lg bg-gray-100 text-gray-600 flex items-center justify-center hover:bg-gray-200 text-lg leading-none"
+                  >›</button>
+                </div>
+                {/* Month grid */}
+                <Popover.Close asChild>
+                  <div className="grid grid-cols-3 gap-1">
+                    {MONTHS_SHORT.map((name, mi) => {
+                      const isCurrent = pickerYear === viewDate.getFullYear() && mi === viewDate.getMonth()
+                      return (
+                        <button
+                          key={mi}
+                          onClick={() => onViewDateChange(new Date(pickerYear, mi, 1))}
+                          className={`py-1.5 rounded-lg text-sm font-medium transition-colors
+                            ${isCurrent ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100 active:bg-gray-200'}
+                          `}
+                        >
+                          {name}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </Popover.Close>
               </Popover.Content>
             </Popover.Portal>
           </Popover.Root>
@@ -178,6 +183,12 @@ export function CalendarView({
             className="w-7 h-7 rounded-lg bg-gray-100 text-gray-600 flex items-center justify-center hover:bg-gray-200 active:bg-gray-200 text-lg"
             aria-label="Nästa månad"
           >›</button>
+          <button
+            onClick={() => { onViewDateChange(getToday()); setSelectedDate(getToday()) }}
+            className="text-xs font-medium px-2.5 py-1.5 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 active:bg-gray-200"
+          >
+            Idag
+          </button>
         </div>
 
         {/* Day-of-week headers */}
@@ -196,7 +207,6 @@ export function CalendarView({
               const dateStr    = toDateString(date)
               const isToday    = dateStr === todayStr
               const past       = isPast(date)
-              const isVisible  = isVisibleDay(date, dayFilter)
               const isSelected = dateStr === selectedDateStr
               const avail      = availabilityMap[dateStr] ?? 'empty'
 
@@ -209,11 +219,11 @@ export function CalendarView({
                 <button
                   key={di}
                   onClick={() => setSelectedDate(isSelected ? null : date)}
-                  disabled={past || !isVisible}
+                  disabled={past}
                   aria-label={`${formatDayLabel(date)}${availLabel ? `, ${availLabel}` : ''}`}
                   className={`flex flex-col items-center py-2 transition-colors
                     ${isSelected ? 'bg-blue-50' : 'active:bg-gray-50'}
-                    ${past || !isVisible ? 'opacity-25 cursor-default' : ''}
+                    ${past ? 'opacity-25 cursor-default' : ''}
                     ${di < 6 ? 'border-r border-gray-50' : ''}
                   `}
                 >
@@ -251,8 +261,8 @@ export function CalendarView({
       </div>
 
       {/* Day detail panel — hidden on mobile unless a date is selected; always visible on lg+ */}
-      <div className={`bg-white rounded-xl border border-gray-200 overflow-hidden ${selectedDate && isVisibleDay(selectedDate, dayFilter) ? '' : 'hidden lg:flex lg:items-center lg:justify-center lg:min-h-48'}`}>
-        {selectedDate && isVisibleDay(selectedDate, dayFilter) ? (
+      <div className={`bg-white rounded-xl border border-gray-200 overflow-hidden ${selectedDate ? '' : 'hidden lg:flex lg:items-center lg:justify-center lg:min-h-48'}`}>
+        {selectedDate ? (
           <>
             <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
               <h2 className="font-semibold text-gray-800 capitalize">
@@ -292,6 +302,7 @@ export function CalendarView({
                     facility={facility}
                     data={queriesByFacilityId[facility.id]?.data}
                     isLoading={queriesByFacilityId[facility.id]?.isLoading ?? false}
+                    showEmpty={true}
                     isError={queriesByFacilityId[facility.id]?.isError ?? false}
                     date={selectedDate}
                     minDuration={minDuration}
