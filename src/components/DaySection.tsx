@@ -46,7 +46,7 @@ export function DaySection({
   const dateStr = toDateString(date)
   const loading = isAnyLoading(facilityIds, queriesByFacilityId)
   const hasSlots = hasFreeSlots(facilityIds, queriesByFacilityId, dateStr, minDuration)
-  const showContent = loading || hasSlots
+  const showContent = showEmpty || loading || hasSlots
 
   if (!showContent) return null
 
