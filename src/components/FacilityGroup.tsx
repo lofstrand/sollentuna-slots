@@ -52,12 +52,10 @@ export function FacilityGroup({
   if (!anyFree && !anyLoading && !showEmpty) return null
 
   return (
-    <div className={`rounded-xl overflow-hidden bg-surface-container-lowest shadow-[0px_4px_16px_rgba(0,0,0,0.04)] border-l-4 ${
-      anyFree ? 'border-primary' : 'border-surface-container-high'
-    }`}>
+    <div className="rounded-xl overflow-hidden bg-surface-container-lowest shadow-[0px_4px_16px_rgba(0,0,0,0.04)]">
 
       {/* Group header */}
-      <div className="px-4 py-3 flex items-center justify-between border-b border-outline-variant/10">
+      <div className="px-4 py-2.5 flex items-center justify-between border-b border-outline-variant/10">
         <h3 className="font-display font-bold text-base text-on-surface">{groupName}</h3>
         {anyLoading ? (
           <span className="text-label-sm text-on-surface-variant font-body">Laddar…</span>
@@ -84,9 +82,9 @@ export function FacilityGroup({
           return (
             <div
               key={facility.id}
-              className={`px-4 py-3 ${!hasFree && !isLoading ? 'opacity-40' : ''}`}
+              className={`px-4 pt-2.5 pb-4 ${!hasFree && !isLoading ? 'opacity-40' : ''}`}
             >
-              <p className="text-xs font-semibold font-body uppercase tracking-wider text-on-surface-variant mb-2">
+              <p className="text-xs font-semibold font-body uppercase tracking-wider text-on-surface-variant mb-1.5">
                 {fieldName}
               </p>
 
@@ -114,9 +112,9 @@ export function FacilityGroup({
                             availableSlots: [item.slot, ...freeSlots.filter(s => s !== item.slot)],
                           })}
                           aria-label={`Boka ${fieldName}, ${minToTime(item.startMin)}–${minToTime(item.endMin)}`}
-                          className="flex items-center gap-1.5 bg-primary/10 text-primary border border-primary/20 rounded-full px-3 py-1.5 text-sm font-semibold font-body active:bg-primary/20 transition-colors"
+                          className="flex items-center gap-1 bg-primary/10 text-primary border border-primary/20 rounded-full px-2.5 py-1 text-label-sm font-semibold font-body active:bg-primary/20 transition-colors"
                         >
-                          <span className="material-symbols-outlined text-sm leading-none shrink-0">schedule</span>
+                          <span className="material-symbols-outlined text-xs leading-none shrink-0">schedule</span>
                           {minToTime(item.startMin)}–{minToTime(item.endMin)}
                         </button>
                       )
@@ -126,7 +124,7 @@ export function FacilityGroup({
                     return (
                       <Popover.Root key={i}>
                         <Popover.Trigger asChild>
-                          <button className="flex items-center gap-1.5 bg-surface-container text-on-surface-variant rounded-full px-3 py-1.5 text-sm font-body opacity-70 active:opacity-100 transition-opacity">
+                          <button className="flex items-center gap-1 bg-surface-container text-on-surface-variant rounded-full px-2.5 py-1 text-label-sm font-body opacity-70 active:opacity-100 transition-opacity">
                             <span className="material-symbols-outlined text-sm leading-none shrink-0">{icon}</span>
                             {minToTime(item.startMin)}–{minToTime(item.endMin)}
                           </button>

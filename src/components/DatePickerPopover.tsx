@@ -55,6 +55,7 @@ export function DatePickerPopover({ selected, days, onSelect, trigger }: DatePic
       <Popover.Portal>
         <Popover.Content
           sideOffset={6}
+          collisionPadding={16}
           className="z-50 w-72 bg-surface-container-lowest rounded-xl shadow-ambient-lg border border-outline-variant/40 overflow-hidden focus:outline-none"
         >
           {/* Month navigation */}

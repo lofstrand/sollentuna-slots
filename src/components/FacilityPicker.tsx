@@ -188,7 +188,7 @@ export function FacilityPicker({
     return (
       <div key={node.id}>
         <div
-          className={`flex items-center gap-3 py-2.5 px-4 rounded-lg mx-2 transition-colors cursor-pointer ${
+          className={`flex items-center gap-3 py-2 px-4 rounded-lg mx-2 transition-colors cursor-pointer ${
             isChecked ? "bg-primary-fixed/20" : "hover:bg-surface-container-low"
           }`}
           style={{ paddingLeft: 16 + depth * 16 }}
@@ -212,7 +212,7 @@ export function FacilityPicker({
             state={isChecked ? "checked" : "unchecked"}
             onClick={() => toggleNode(node)}
           />
-          <span className="text-label-md font-body text-on-surface flex-1 select-none">
+          <span className="text-label-sm font-body text-on-surface flex-1 select-none">
             {node.label}
           </span>
         </div>
@@ -237,18 +237,15 @@ export function FacilityPicker({
           aria-describedby={undefined}
         >
           {/* Header */}
-          <div className="shrink-0 px-5 pt-5 pb-3">
+          <div className="shrink-0 px-5 pt-4 pb-2">
             <div className="flex items-start justify-between">
               <div>
                 <span className="text-label-sm font-semibold text-on-surface-variant font-body uppercase tracking-wider">
                   Välj anläggning
                 </span>
-                <Dialog.Title className="font-display text-headline-lg text-on-surface mt-1">
+                <Dialog.Title className="font-display text-title-lg text-on-surface mt-0.5">
                   Vart vill du spela?
                 </Dialog.Title>
-                <p className="text-label-md text-on-surface-variant font-body mt-1">
-                  Hitta lediga tider på kommunens idrottsanläggningar.
-                </p>
               </div>
               <Dialog.Close
                 className="text-on-surface-variant text-2xl leading-none px-2 hover:text-on-surface"
@@ -271,12 +268,12 @@ export function FacilityPicker({
               ).length;
 
               return (
-                <div key={group} className="mb-3">
+                <div key={group} className="mb-2">
                   {/* Group card */}
                   <div className="bg-surface-container-lowest rounded-xl shadow-ambient border border-outline-variant/40 overflow-hidden">
                     {/* Group header */}
                     <div
-                      className="flex items-center gap-3 px-4 py-3.5 cursor-pointer"
+                      className="flex items-center gap-3 px-4 py-3 cursor-pointer"
                       onClick={() => toggleExpGroup(group)}
                     >
                       <CheckBox
@@ -286,7 +283,7 @@ export function FacilityPicker({
                         }}
                       />
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-display text-headline-sm text-on-surface">
+                        <h3 className="font-display text-title-md text-on-surface">
                           {group}
                         </h3>
                       </div>

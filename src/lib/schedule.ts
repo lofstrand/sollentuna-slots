@@ -39,7 +39,7 @@ export function formatMonthLabel(date: Date): string {
   return `${MONTHS_LONG[date.getMonth()]} ${date.getFullYear()}`
 }
 
-export function formatListRangeLabel(start: Date, _days: number): string {
+export function formatListRangeLabel(start: Date): string {
   return `Vecka ${getISOWeek(start)}`
 }
 

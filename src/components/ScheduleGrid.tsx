@@ -37,7 +37,7 @@ export function ScheduleGrid({
   const displayDays = dayFilter === 'fri-sun' ? 7 : FETCH_DAYS
   const dates = getWindowDates(startDate, displayDays).filter(d => isVisibleDay(d, dayFilter))
   const queriesByFacilityId = Object.fromEntries(facilityIds.map((id, i) => [id, queries[i]]))
-  const navLabel = formatListRangeLabel(startDate, FETCH_DAYS)
+  const navLabel = formatListRangeLabel(startDate)
 
   if (facilityIds.length === 0) {
     return (
@@ -48,23 +48,22 @@ export function ScheduleGrid({
   }
 
   return (
-    <div className="px-3 pt-3 pb-16 lg:pb-6">
+    <div className="px-4 pt-3 pb-16 lg:pb-6">
       {/* Inline nav row */}
-      <div className="flex items-center gap-2 mb-4 flex-wrap">
+      <div className="flex items-center gap-2 mb-4">
+        {/* Navigation — left */}
         <button
           onClick={() => onNavigate(-1)}
           className="shrink-0 w-9 h-9 rounded-md bg-surface-container text-on-surface flex items-center justify-center active:bg-surface-container-high text-lg font-display"
           aria-label="Föregående period"
-        >
-          ‹
-        </button>
+        >‹</button>
 
         <DatePickerPopover
           selected={startDate}
           days={FETCH_DAYS}
           onSelect={d => onViewDateChange(getMondayOf(d))}
           trigger={
-            <button className="shrink-0 text-label-lg font-display text-on-surface min-w-[110px] text-center px-3 py-1.5 rounded-md hover:bg-surface-container active:bg-surface-container-high transition-colors">
+            <button className="shrink-0 text-label-lg font-display text-on-surface min-w-[72px] text-center px-2 py-1.5 rounded-md hover:bg-surface-container active:bg-surface-container-high transition-colors">
               {navLabel}
             </button>
           }
@@ -74,9 +73,7 @@ export function ScheduleGrid({
           onClick={() => onNavigate(1)}
           className="shrink-0 w-9 h-9 rounded-md bg-surface-container text-on-surface flex items-center justify-center active:bg-surface-container-high text-lg font-display"
           aria-label="Nästa period"
-        >
-          ›
-        </button>
+        >›</button>
 
         <button
           onClick={() => onViewDateChange(getToday())}
@@ -85,11 +82,12 @@ export function ScheduleGrid({
           Idag
         </button>
 
+        {/* Day filter — right */}
         <ToggleGroup.Root
           type="single"
           value={dayFilter}
           onValueChange={v => { if (v) onDayFilterChange(v as DayFilter) }}
-          className="flex shrink-0 bg-surface-container rounded-md p-0.5 text-label-sm font-semibold font-body"
+          className="flex shrink-0 bg-surface-container rounded-md p-0.5 text-label-sm font-semibold font-body ml-auto"
         >
           <ToggleGroup.Item
             value="fri-sun"

@@ -161,6 +161,7 @@ export function useBookings({ facilityIds, viewDate }: UseBookingsOptions): UseB
       const id = setTimeout(prefetch, 2000)
       return () => clearTimeout(id)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, primary.status, viewDate.getMonth(), viewDate.getFullYear(), facilityIds, queryClient])
 
   function refetch() {

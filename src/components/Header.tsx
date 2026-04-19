@@ -53,35 +53,52 @@ export function Header({
           </h1>
         </div>
 
-        {/* Facility picker button */}
-        <div className="px-4 pb-2">
+        {/* Facility picker + view mode */}
+        <div className="px-4 pb-2 flex items-center gap-2">
           <button
             onClick={onOpenFacilityPicker}
-            className="w-full flex items-center justify-between px-4 py-2.5 bg-surface-container rounded-md text-label-md font-body text-on-surface active:bg-surface-container-high transition-colors"
+            className="flex-1 min-w-0 flex items-center justify-between px-4 py-2.5 bg-surface-container rounded-md text-label-md font-body text-on-surface active:bg-surface-container-high transition-colors"
           >
             <span className="truncate font-semibold">{facilityLabel}</span>
-            <span className="ml-2 text-on-surface-variant shrink-0 text-xs">
-              ▼
-            </span>
+            <span className="ml-2 text-on-surface-variant shrink-0 text-xs">▼</span>
           </button>
+          <ToggleGroup.Root
+            type="single"
+            value={viewMode}
+            onValueChange={(v) => { if (v) onViewModeChange(v as ViewMode); }}
+            className="flex shrink-0 bg-surface-container rounded-md p-0.5 text-label-sm font-semibold font-body"
+          >
+            <ToggleGroup.Item
+              value="calendar"
+              aria-label="Kalendervy"
+              className="flex items-center gap-1 px-3 py-2 rounded-[0.5rem] transition-colors data-[state=on]:bg-surface-container-lowest data-[state=on]:shadow-ambient text-on-surface-variant data-[state=on]:text-on-surface"
+            >
+              <span className="material-symbols-outlined text-sm leading-none">calendar_month</span>
+              <span className="hidden sm:inline">Kalender</span>
+            </ToggleGroup.Item>
+            <ToggleGroup.Item
+              value="list"
+              aria-label="Listvy"
+              className="flex items-center gap-1 px-3 py-2 rounded-[0.5rem] transition-colors data-[state=on]:bg-surface-container-lowest data-[state=on]:shadow-ambient text-on-surface-variant data-[state=on]:text-on-surface"
+            >
+              <span className="material-symbols-outlined text-sm leading-none">format_list_bulleted</span>
+              <span className="hidden sm:inline">Lista</span>
+            </ToggleGroup.Item>
+          </ToggleGroup.Root>
         </div>
 
         {/* Controls */}
-        <div className="flex items-center gap-2 px-4 pb-3 flex-wrap">
+        <div className="flex items-center justify-between gap-2 px-4 pb-3">
           {/* Min duration */}
           <div className="flex items-center gap-1 shrink-0">
-            <span className="text-label-sm text-on-surface-variant font-body">
-              Min
-            </span>
+            <span className="text-label-sm text-on-surface-variant font-body">Minst</span>
             <Select.Root
               value={String(minDuration)}
               onValueChange={(v) => onMinDurationChange(Number(v))}
             >
               <Select.Trigger className="flex items-center gap-1 text-label-sm bg-surface-container rounded-md py-1.5 px-2.5 text-on-surface font-semibold font-body focus:outline-none focus:ring-2 focus:ring-primary/30">
                 <Select.Value />
-                <Select.Icon className="text-on-surface-variant text-[10px]">
-                  ▼
-                </Select.Icon>
+                <Select.Icon className="text-on-surface-variant text-[10px]">▼</Select.Icon>
               </Select.Trigger>
               <Select.Portal>
                 <Select.Content
@@ -117,72 +134,42 @@ export function Header({
             </Select.Root>
           </div>
 
-          {/* Show booked toggle */}
-          <button
-            onClick={() => onShowBookedChange(!showBooked)}
-            className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-label-sm font-semibold font-body transition-colors ${
-              showBooked
-                ? "bg-primary text-white"
-                : "bg-surface-container text-on-surface-variant"
-            }`}
-          >
-            <span
-              className="material-symbols-outlined text-sm"
-              style={
-                showBooked ? { fontVariationSettings: "'FILL' 1" } : undefined
-              }
-            >
-              {showBooked ? "check_box" : "check_box_outline_blank"}
-            </span>
-            <span>Bokningar</span>
-          </button>
+          {/* Divider */}
+          <div className="hidden sm:block h-4 w-px bg-outline-variant/40 shrink-0" />
 
-          {/* Show fully booked facilities toggle */}
-          <button
-            onClick={() => onShowEmptyChange(!showEmpty)}
-            className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-label-sm font-semibold font-body transition-colors ${
-              showEmpty
-                ? "bg-primary text-white"
-                : "bg-surface-container text-on-surface-variant"
-            }`}
-          >
-            <span
-              className="material-symbols-outlined text-sm"
-              style={
-                showEmpty ? { fontVariationSettings: "'FILL' 1" } : undefined
-              }
+          {/* Filters group */}
+          <div className="flex items-center gap-1 shrink-0">
+            <span className="text-label-sm text-on-surface-variant font-body mr-0.5">Visa</span>
+            <button
+              onClick={() => onShowBookedChange(!showBooked)}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-label-sm font-semibold font-body transition-colors ${
+                showBooked
+                  ? "bg-primary/10 text-primary"
+                  : "bg-surface-container text-on-surface-variant"
+              }`}
             >
-              {showEmpty ? "check_box" : "check_box_outline_blank"}
-            </span>
-            <span>Fullbokade</span>
-          </button>
+              <span className="material-symbols-outlined text-sm leading-none"
+                style={showBooked ? { fontVariationSettings: "'FILL' 1" } : undefined}>
+                sports_soccer
+              </span>
+              <span>Träning & match</span>
+            </button>
+            <button
+              onClick={() => onShowEmptyChange(!showEmpty)}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-label-sm font-semibold font-body transition-colors ${
+                showEmpty
+                  ? "bg-primary/10 text-primary"
+                  : "bg-surface-container text-on-surface-variant"
+              }`}
+            >
+              <span className="material-symbols-outlined text-sm leading-none"
+                style={showEmpty ? { fontVariationSettings: "'FILL' 1" } : undefined}>
+                event_busy
+              </span>
+              <span>Fullbokade</span>
+            </button>
+          </div>
 
-          {/* View mode */}
-          <ToggleGroup.Root
-            type="single"
-            value={viewMode}
-            onValueChange={(v) => {
-              if (v) onViewModeChange(v as ViewMode);
-            }}
-            className="flex shrink-0 bg-surface-container rounded-md p-0.5 text-label-sm font-semibold font-body"
-          >
-            <ToggleGroup.Item
-              value="calendar"
-              aria-label="Kalendervy"
-              className="flex items-center gap-1 px-3 py-1.5 rounded-[0.5rem] transition-colors data-[state=on]:bg-surface-container-lowest data-[state=on]:shadow-ambient text-on-surface-variant data-[state=on]:text-on-surface"
-            >
-              <span aria-hidden="true">📅</span>
-              <span>Kalender</span>
-            </ToggleGroup.Item>
-            <ToggleGroup.Item
-              value="list"
-              aria-label="Listvy"
-              className="flex items-center gap-1 px-3 py-1.5 rounded-[0.5rem] transition-colors data-[state=on]:bg-surface-container-lowest data-[state=on]:shadow-ambient text-on-surface-variant data-[state=on]:text-on-surface"
-            >
-              <span aria-hidden="true">☰</span>
-              <span>Lista</span>
-            </ToggleGroup.Item>
-          </ToggleGroup.Root>
         </div>
       </div>
     </header>

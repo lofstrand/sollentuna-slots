@@ -127,7 +127,7 @@ export function CalendarView({
   }
 
   return (
-    <div className="px-3 pt-3 pb-16 lg:pb-6 lg:grid lg:grid-cols-[1fr_320px] lg:gap-4 lg:items-start">
+    <div className="px-4 pt-3 pb-16 lg:pb-6 lg:grid lg:grid-cols-[1fr_320px] lg:gap-4 lg:items-start">
       {/* Calendar grid */}
       <div className="bg-surface-container-lowest rounded-xl shadow-ambient border border-outline-variant/40 overflow-hidden mb-4 lg:mb-0 lg:order-last">
         {/* Month navigation */}
@@ -198,7 +198,7 @@ export function CalendarView({
         {/* Day-of-week headers */}
         <div className="grid grid-cols-7 bg-surface-container-low">
           {DAY_HEADERS.map(d => (
-            <div key={d} className="py-2 text-center text-label-sm font-body text-on-surface-variant">{d}</div>
+            <div key={d} className="py-1.5 sm:py-2 text-center text-label-sm font-body text-on-surface-variant">{d}</div>
           ))}
         </div>
 
@@ -206,7 +206,7 @@ export function CalendarView({
         {weeks.map((week, wi) => (
           <div key={wi} className="grid grid-cols-7">
             {week.map((date, di) => {
-              if (!date) return <div key={di} className="py-3" />
+              if (!date) return <div key={di} className="py-1.5 sm:py-3" />
 
               const dateStr    = toDateString(date)
               const isToday    = dateStr === todayStr
@@ -225,7 +225,7 @@ export function CalendarView({
                   onClick={() => setSelectedDate(isSelected ? null : date)}
                   disabled={past}
                   aria-label={`${formatDayLabel(date)}${availLabel ? `, ${availLabel}` : ''}`}
-                  className={`flex flex-col items-center py-3 transition-colors
+                  className={`flex flex-col items-center py-1.5 sm:py-3 transition-colors
                     ${past ? 'opacity-25 cursor-default' :
                       isSelected ? 'bg-primary/15' :
                       avail === 'free' ? 'bg-primary/[0.06] active:bg-primary/10' :
@@ -234,7 +234,7 @@ export function CalendarView({
                     }
                   `}
                 >
-                  <span className={`text-label-lg font-body w-8 h-8 flex items-center justify-center rounded-full
+                  <span className={`text-label-md sm:text-label-lg font-body w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-full
                     ${isToday ? 'bg-gradient-to-b from-primary to-primary-container text-white' :
                       isSelected ? 'bg-primary/25 text-primary font-bold ring-2 ring-primary/30' :
                       !past && avail === 'free' ? 'text-primary font-semibold' :
@@ -295,7 +295,7 @@ export function CalendarView({
                 groupMap.set(facility.group, [...list, facility])
               }
               return (
-                <div className="px-3 py-3 grid gap-4">
+                <div className="py-3 grid gap-4">
                   {[...groupMap.entries()].map(([groupName, groupFacilities]) => (
                     <FacilityGroup
                       key={groupName}

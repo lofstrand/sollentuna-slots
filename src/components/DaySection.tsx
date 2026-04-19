@@ -70,21 +70,16 @@ export function DaySection({
     date.getDate() === today.getDate()
 
   return (
-    <section className="mb-8">
-      <div className="px-4 pt-2 pb-4">
-        <h2 className="font-display text-headline-lg text-on-surface capitalize">
+    <section className="mb-6">
+      <div className="px-4 pt-2 pb-3">
+        <h2 className="font-display text-title-lg text-on-surface capitalize">
           {isToday
             ? `Idag, ${date.getDate()} ${formatDayLabel(date).split(' ').slice(2).join(' ')}`
             : formatDayLabel(date)}
         </h2>
-        <span className={`text-label-sm font-semibold font-body uppercase tracking-wider mt-1 block ${
-          loading ? 'text-on-surface-variant' : freeCount > 0 ? 'text-primary' : 'text-tertiary'
-        }`}>
-          {loading ? 'Hämtar tider…' : freeCount > 0 ? `${freeCount} lediga tider` : 'Inga lediga tider'}
-        </span>
       </div>
 
-      <div className="px-2 grid gap-4">
+      <div className="grid gap-4">
         {groups.map(([groupName, groupFacilities]) => (
           <FacilityGroup
             key={groupName}
