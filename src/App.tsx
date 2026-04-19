@@ -42,7 +42,7 @@ export default function App() {
   const [selectedSlot, setSelectedSlot] = useState<SelectedSlot | null>(null)
   const [viewMode, setViewMode] = useLocalStorage<ViewMode>('sbf_viewMode', 'calendar')
   const [showBooked, setShowBooked] = useLocalStorage<boolean>('sbf_showBooked', false)
-  const [showEmpty, setShowEmpty] = useLocalStorage<boolean>('sbf_showEmpty', true)
+  const [showEmpty, setShowEmpty] = useLocalStorage<boolean>('sbf_showEmpty', false)
 
   // Centralized booking data — see src/hooks/useBookings.ts
   const { queries, isError, refetch } = useBookings({ facilityIds, viewDate })
