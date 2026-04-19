@@ -200,7 +200,7 @@ export function FacilityPicker({
                 e.stopPropagation();
                 toggleExpNode(node);
               }}
-              className="w-5 h-5 flex items-center justify-center text-on-surface-variant shrink-0 text-sm"
+              className="w-6 h-6 flex items-center justify-center text-on-surface-variant shrink-0 text-xl"
               aria-label={isExpanded ? "Dölj" : "Expandera"}
             >
               {isExpanded ? "▾" : "▸"}
@@ -293,7 +293,7 @@ export function FacilityPicker({
                             {selectedCount} vald{selectedCount !== 1 ? "a" : ""}
                           </span>
                         )}
-                        <span className="text-on-surface-variant text-lg">
+                        <span className="text-on-surface-variant text-xl">
                           {isExpanded ? "▾" : "▸"}
                         </span>
                       </div>
