@@ -3,7 +3,10 @@ export interface TemplateVars {
   ledarNamn: string
   ledarMail: string
   ledarTel: string
-  onskadTid: string
+  bokningsTyp: string
+  plan: string
+  datum: string
+  tid: string
 }
 
 export function applyTemplate(template: string, vars: TemplateVars): string {

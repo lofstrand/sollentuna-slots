@@ -40,6 +40,7 @@ export interface BookingFormState {
   ledarNamn: string
   ledarMail: string
   ledarTel: string
+  bokningsTyp: 'träning' | 'match'
 }
 
 export interface SelectedSlot {
@@ -48,4 +49,5 @@ export interface SelectedSlot {
   date: string             // "YYYY-MM-DD"
   startMin: number
   endMin: number
+  availableSlots: FreeSlot[]
 }

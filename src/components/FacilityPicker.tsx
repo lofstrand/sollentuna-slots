@@ -1,286 +1,341 @@
-import { useState, useMemo } from 'react'
-import * as Dialog from '@radix-ui/react-dialog'
-import type { Facility } from '../types'
+import { useState, useMemo } from "react";
+import * as Dialog from "@radix-ui/react-dialog";
+import type { Facility } from "../types";
 
 interface FacilityPickerProps {
-  open: boolean
-  selected: number[]
-  facilities: Facility[]
-  onChange: (ids: number[]) => void
-  onClose: () => void
+  open: boolean;
+  selected: number[];
+  facilities: Facility[];
+  onChange: (ids: number[]) => void;
+  onClose: () => void;
 }
 
 interface TreeNode {
-  id: number
-  label: string
-  children: TreeNode[]
-  allIds: number[]   // this node's id + all descendant ids
+  id: number;
+  label: string;
+  children: TreeNode[];
+  allIds: number[];
 }
 
-// Build a tree from a flat list of facilities within one group.
-// The facility name is a comma-separated path: "Plan, Halvplan, Fjärdedelsplan".
-// Each segment becomes a tree level; the display label is just the last segment.
 function buildGroupTree(groupFacilities: Facility[]): TreeNode[] {
-  // Shorter names = higher in the hierarchy; process parents before children
-  const sorted = [...groupFacilities].sort((a, b) => a.name.length - b.name.length)
-  const nodeMap = new Map<string, TreeNode>()
-  const roots: TreeNode[] = []
+  const sorted = [...groupFacilities].sort(
+    (a, b) => a.name.length - b.name.length,
+  );
+  const nodeMap = new Map<string, TreeNode>();
+  const roots: TreeNode[] = [];
 
   for (const f of sorted) {
-    const lastComma = f.name.lastIndexOf(',')
-    const label = lastComma !== -1 ? f.name.slice(lastComma + 1).trim() : f.name
-    const node: TreeNode = { id: f.id, label, children: [], allIds: [f.id] }
-    nodeMap.set(f.name, node)
+    const lastComma = f.name.lastIndexOf(",");
+    const label =
+      lastComma !== -1 ? f.name.slice(lastComma + 1).trim() : f.name;
+    const node: TreeNode = { id: f.id, label, children: [], allIds: [f.id] };
+    nodeMap.set(f.name, node);
 
     if (lastComma !== -1) {
-      const parentName = f.name.slice(0, lastComma).trim()
-      const parent = nodeMap.get(parentName)
+      const parentName = f.name.slice(0, lastComma).trim();
+      const parent = nodeMap.get(parentName);
       if (parent) {
-        parent.children.push(node)
-        continue
+        parent.children.push(node);
+        continue;
       }
     }
-    roots.push(node)
+    roots.push(node);
   }
 
-  // Propagate descendant ids upward (bottom-up)
   function propagate(node: TreeNode) {
     for (const child of node.children) {
-      propagate(child)
-      node.allIds.push(...child.allIds)
+      propagate(child);
+      node.allIds.push(...child.allIds);
     }
   }
-  roots.forEach(propagate)
+  roots.forEach(propagate);
 
-  return roots
+  return roots;
 }
 
-type CheckState = 'checked' | 'mixed' | 'unchecked'
+type CheckState = "checked" | "mixed" | "unchecked";
 
 function checkState(allIds: number[], selected: Set<number>): CheckState {
-  const n = allIds.filter(id => selected.has(id)).length
-  if (n === 0) return 'unchecked'
-  if (n === allIds.length) return 'checked'
-  return 'mixed'
+  const n = allIds.filter((id) => selected.has(id)).length;
+  if (n === 0) return "unchecked";
+  if (n === allIds.length) return "checked";
+  return "mixed";
 }
 
-function NodeBox({ state, onClick }: { state: CheckState; onClick: () => void }) {
+function CheckBox({
+  state,
+  onClick,
+}: {
+  state: CheckState;
+  onClick: () => void;
+}) {
   return (
     <button
       role="checkbox"
-      aria-checked={state === 'checked' ? true : state === 'mixed' ? 'mixed' : false}
+      aria-checked={
+        state === "checked" ? true : state === "mixed" ? "mixed" : false
+      }
       onClick={onClick}
-      className={`w-5 h-5 rounded border-2 flex items-center justify-center text-[11px] font-bold shrink-0
-        ${state === 'checked'
-          ? 'bg-blue-600 border-blue-600 text-white'
-          : state === 'mixed'
-            ? 'bg-blue-100 border-blue-400 text-blue-600'
-            : 'border-gray-300'
+      className={`w-5 h-5 rounded flex items-center justify-center text-[11px] font-bold shrink-0 transition-colors
+        ${
+          state === "checked"
+            ? "bg-primary text-white"
+            : state === "mixed"
+              ? "bg-primary-fixed text-primary"
+              : "bg-surface-container-high"
         }`}
     >
-      {state === 'checked' ? '✓' : state === 'mixed' ? '–' : ''}
+      {state === "checked" ? "✓" : state === "mixed" ? "–" : ""}
     </button>
-  )
+  );
 }
 
-export function FacilityPicker({ open, selected, facilities, onChange, onClose }: FacilityPickerProps) {
-  const selectedSet = useMemo(() => new Set(selected), [selected])
-  const groups = useMemo(() => [...new Set(facilities.map(f => f.group))], [facilities])
+export function FacilityPicker({
+  open,
+  selected,
+  facilities,
+  onChange,
+  onClose,
+}: FacilityPickerProps) {
+  const selectedSet = useMemo(() => new Set(selected), [selected]);
+  const groups = useMemo(
+    () => [...new Set(facilities.map((f) => f.group))],
+    [facilities],
+  );
 
   const treeByGroup = useMemo(() => {
-    const map: Record<string, TreeNode[]> = {}
+    const map: Record<string, TreeNode[]> = {};
     for (const group of groups) {
-      map[group] = buildGroupTree(facilities.filter(f => f.group === group))
+      map[group] = buildGroupTree(facilities.filter((f) => f.group === group));
     }
-    return map
-  }, [facilities, groups])
+    return map;
+  }, [facilities, groups]);
 
   const idsByGroup = useMemo(() => {
-    const map: Record<string, number[]> = {}
+    const map: Record<string, number[]> = {};
     for (const group of groups) {
-      map[group] = facilities.filter(f => f.group === group).map(f => f.id)
+      map[group] = facilities.filter((f) => f.group === group).map((f) => f.id);
     }
-    return map
-  }, [facilities, groups])
+    return map;
+  }, [facilities, groups]);
 
-  // Auto-expand groups that already have selected items
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => {
-    const s = new Set<string>()
+    const s = new Set<string>();
     for (const f of facilities) {
-      if (selected.includes(f.id)) s.add(f.group)
+      if (selected.includes(f.id)) s.add(f.group);
     }
-    return s
-  })
-  const [expandedNodes, setExpandedNodes] = useState<Set<number>>(new Set())
+    return s;
+  });
+  const [expandedNodes, setExpandedNodes] = useState<Set<number>>(new Set());
 
   function collectNodeIds(node: TreeNode): number[] {
-    return [node.id, ...node.children.flatMap(collectNodeIds)]
+    return [node.id, ...node.children.flatMap(collectNodeIds)];
   }
 
   function toggleExpGroup(group: string) {
-    const expanding = !expandedGroups.has(group)
-    setExpandedGroups(prev => {
-      const next = new Set(prev)
-      if (expanding) next.add(group); else next.delete(group)
-      return next
-    })
+    const expanding = !expandedGroups.has(group);
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (expanding) next.add(group);
+      else next.delete(group);
+      return next;
+    });
     if (expanding) {
-      // Also expand all nodes within this group
-      const allNodeIds = (treeByGroup[group] ?? []).flatMap(collectNodeIds)
-      setExpandedNodes(prev => {
-        const next = new Set(prev)
-        for (const id of allNodeIds) next.add(id)
-        return next
-      })
+      const allNodeIds = (treeByGroup[group] ?? []).flatMap(collectNodeIds);
+      setExpandedNodes((prev) => {
+        const next = new Set(prev);
+        for (const id of allNodeIds) next.add(id);
+        return next;
+      });
     }
   }
 
   function toggleExpNode(node: TreeNode) {
-    setExpandedNodes(prev => {
-      const next = new Set(prev)
+    setExpandedNodes((prev) => {
+      const next = new Set(prev);
       if (next.has(node.id)) {
-        next.delete(node.id)
+        next.delete(node.id);
       } else {
-        for (const id of collectNodeIds(node)) next.add(id)
+        for (const id of collectNodeIds(node)) next.add(id);
       }
-      return next
-    })
+      return next;
+    });
   }
 
   function toggleGroup(group: string) {
-    const ids = idsByGroup[group] ?? []
-    const state = checkState(ids, selectedSet)
-    if (state === 'checked') {
-      const next = selected.filter(id => !ids.includes(id))
-      if (next.length === 0) return
-      onChange(next)
+    const ids = idsByGroup[group] ?? [];
+    const state = checkState(ids, selectedSet);
+    if (state === "checked") {
+      onChange(selected.filter((id) => !ids.includes(id)));
     } else {
-      onChange([...new Set([...selected, ...ids])])
+      onChange([...new Set([...selected, ...ids])]);
     }
   }
 
   function toggleNode(node: TreeNode) {
     if (selectedSet.has(node.id)) {
-      const next = selected.filter(id => id !== node.id)
-      if (next.length === 0) return
-      onChange(next)
+      onChange(selected.filter((id) => id !== node.id));
     } else {
-      onChange([...selected, node.id])
+      onChange([...selected, node.id]);
     }
   }
 
   function renderNode(node: TreeNode, depth: number): React.ReactNode {
-    const state: CheckState = selectedSet.has(node.id) ? 'checked' : 'unchecked'
-    const isExpanded = expandedNodes.has(node.id)
-    const hasChildren = node.children.length > 0
-    // depth 0 → 20px, depth 1 → 36px, depth 2 → 52px …
-    const paddingLeft = 20 + depth * 16
+    const isChecked = selectedSet.has(node.id);
+    const isExpanded = expandedNodes.has(node.id);
+    const hasChildren = node.children.length > 0;
 
     return (
       <div key={node.id}>
-        <div className="flex items-center gap-1.5 py-1.5 pr-4" style={{ paddingLeft }}>
+        <div
+          className={`flex items-center gap-3 py-2.5 px-4 rounded-lg mx-2 transition-colors cursor-pointer ${
+            isChecked ? "bg-primary-fixed/20" : "hover:bg-surface-container-low"
+          }`}
+          style={{ paddingLeft: 16 + depth * 16 }}
+          onClick={() => toggleNode(node)}
+        >
           {hasChildren ? (
             <button
-              onClick={() => toggleExpNode(node)}
-              className="w-6 h-6 flex items-center justify-center text-gray-400 shrink-0 text-lg"
-              aria-label={isExpanded ? 'Dölj' : 'Expandera'}
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleExpNode(node);
+              }}
+              className="w-5 h-5 flex items-center justify-center text-on-surface-variant shrink-0 text-sm"
+              aria-label={isExpanded ? "Dölj" : "Expandera"}
             >
-              {isExpanded ? '▾' : '▸'}
+              {isExpanded ? "▾" : "▸"}
             </button>
           ) : (
             <span className="w-5 shrink-0" />
           )}
-          <NodeBox state={state} onClick={() => toggleNode(node)} />
-          <span
-            className="text-sm text-gray-700 cursor-pointer select-none flex-1"
+          <CheckBox
+            state={isChecked ? "checked" : "unchecked"}
             onClick={() => toggleNode(node)}
-          >
+          />
+          <span className="text-label-md font-body text-on-surface flex-1 select-none">
             {node.label}
           </span>
         </div>
-        {hasChildren && isExpanded && node.children.map(child => renderNode(child, depth + 1))}
+        {hasChildren &&
+          isExpanded &&
+          node.children.map((child) => renderNode(child, depth + 1))}
       </div>
-    )
+    );
   }
 
   return (
-    <Dialog.Root open={open} onOpenChange={v => { if (!v) onClose() }}>
+    <Dialog.Root
+      open={open}
+      onOpenChange={(v) => {
+        if (!v) onClose();
+      }}
+    >
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40" />
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-on-surface/30 backdrop-blur-sm" />
         <Dialog.Content
-          className="fixed inset-0 z-50 flex flex-col bg-white focus:outline-none md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-sm md:max-h-[80vh] md:rounded-2xl"
+          className="fixed inset-0 z-50 flex flex-col bg-surface/90 backdrop-blur-xl focus:outline-none md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-md md:max-h-[80vh] md:rounded-xl md:shadow-ambient-lg"
           aria-describedby={undefined}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-4 border-b border-gray-200">
-            <Dialog.Title className="text-lg font-bold text-gray-900">Välj anläggning</Dialog.Title>
-            <Dialog.Close className="text-gray-500 text-2xl leading-none px-2" aria-label="Stäng">✕</Dialog.Close>
+          <div className="shrink-0 px-5 pt-5 pb-3">
+            <div className="flex items-start justify-between">
+              <div>
+                <span className="text-label-sm font-semibold text-on-surface-variant font-body uppercase tracking-wider">
+                  Välj anläggning
+                </span>
+                <Dialog.Title className="font-display text-headline-lg text-on-surface mt-1">
+                  Vart vill du spela?
+                </Dialog.Title>
+                <p className="text-label-md text-on-surface-variant font-body mt-1">
+                  Hitta lediga tider på kommunens idrottsanläggningar.
+                </p>
+              </div>
+              <Dialog.Close
+                className="text-on-surface-variant text-2xl leading-none px-2 hover:text-on-surface"
+                aria-label="Stäng"
+              >
+                ✕
+              </Dialog.Close>
+            </div>
           </div>
 
-          {/* Scrollable tree */}
-          <div className="flex-1 overflow-y-auto">
-            {groups.map(group => {
-              const ids = idsByGroup[group] ?? []
-              const state = checkState(ids, selectedSet)
-              const isExpanded = expandedGroups.has(group)
-              const tree = treeByGroup[group] ?? []
-
-              const selectedCount = ids.filter(id => selectedSet.has(id)).length
+          {/* Scrollable groups */}
+          <div className="flex-1 overflow-y-auto px-3 pb-3">
+            {groups.map((group) => {
+              const ids = idsByGroup[group] ?? [];
+              const state = checkState(ids, selectedSet);
+              const isExpanded = expandedGroups.has(group);
+              const tree = treeByGroup[group] ?? [];
+              const selectedCount = ids.filter((id) =>
+                selectedSet.has(id),
+              ).length;
 
               return (
-                <div key={group} className="border-b border-gray-100 last:border-0">
-                  {/* Group header */}
-                  <div className="flex items-center gap-2 px-3 py-2.5">
-                    <button
-                      onClick={() => toggleExpGroup(group)}
-                      className="w-7 h-7 flex items-center justify-center text-gray-400 shrink-0 text-xl"
-                      aria-label={isExpanded ? 'Dölj grupp' : 'Expandera grupp'}
-                    >
-                      {isExpanded ? '▾' : '▸'}
-                    </button>
-                    <NodeBox state={state} onClick={() => toggleGroup(group)} />
-                    <span
-                      className="font-semibold text-gray-800 text-sm cursor-pointer select-none flex-1"
+                <div key={group} className="mb-3">
+                  {/* Group card */}
+                  <div className="bg-surface-container-lowest rounded-xl shadow-ambient border border-outline-variant/40 overflow-hidden">
+                    {/* Group header */}
+                    <div
+                      className="flex items-center gap-3 px-4 py-3.5 cursor-pointer"
                       onClick={() => toggleExpGroup(group)}
                     >
-                      {group}
-                    </span>
-                    {!isExpanded && selectedCount > 0 && (
-                      <span className="text-xs font-semibold text-blue-600 bg-blue-50 rounded-full px-2 py-0.5 shrink-0">
-                        {selectedCount}
-                      </span>
+                      <CheckBox
+                        state={state}
+                        onClick={() => {
+                          toggleGroup(group);
+                        }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-display text-headline-sm text-on-surface">
+                          {group}
+                        </h3>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {selectedCount > 0 && (
+                          <span className="text-label-sm font-bold text-primary bg-primary-fixed/30 rounded-full px-2.5 py-1 font-body">
+                            {selectedCount} vald{selectedCount !== 1 ? "a" : ""}
+                          </span>
+                        )}
+                        <span className="text-on-surface-variant text-lg">
+                          {isExpanded ? "▾" : "▸"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Expanded tree */}
+                    {isExpanded && (
+                      <div className="pb-2">
+                        {tree.map((node) => renderNode(node, 0))}
+                      </div>
                     )}
                   </div>
-
-                  {/* Tree nodes */}
-                  {isExpanded && (
-                    <div className="pb-1">
-                      {tree.map(node => renderNode(node, 0))}
-                    </div>
-                  )}
                 </div>
-              )
+              );
             })}
           </div>
 
           {/* Footer */}
-          <div className="px-4 py-4 border-t border-gray-200 flex gap-3">
+          <div
+            className="shrink-0 px-5 py-4 flex gap-3"
+            style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
+          >
             <button
               type="button"
               onClick={() => onChange([])}
               disabled={selected.length === 0}
-              className="flex-1 border border-gray-200 text-gray-600 font-semibold py-3 rounded-xl active:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex-1 bg-surface-container text-on-surface font-bold font-body py-3.5 rounded-md active:bg-surface-container-high disabled:opacity-40 disabled:cursor-not-allowed text-label-lg"
             >
               Rensa urval
             </button>
-            <Dialog.Close className="flex-[2] bg-blue-600 text-white font-semibold py-3 rounded-xl active:bg-blue-700">
-              Visa {selected.length > 0
-                ? `${selected.length} anläggning${selected.length !== 1 ? 'ar' : ''}`
-                : 'tider'}
+            <Dialog.Close className="flex-[2] bg-gradient-to-b from-primary to-primary-container text-white font-bold font-body py-3.5 rounded-md active:opacity-90 text-label-lg">
+              Visa{" "}
+              {selected.length > 0
+                ? `${selected.length} anläggning${selected.length !== 1 ? "ar" : ""}`
+                : "tider"}
             </Dialog.Close>
           </div>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
-  )
+  );
 }

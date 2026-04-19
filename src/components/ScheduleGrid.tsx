@@ -1,6 +1,6 @@
 import * as ToggleGroup from '@radix-ui/react-toggle-group'
 import type { DayFilter, Facility, FacilityQuery, SelectedSlot } from '../types'
-import { getWindowDates, isVisibleDay, isPast, formatListRangeLabel, getToday, getMondayOf } from '../lib/schedule'
+import { getWindowDates, isVisibleDay, formatListRangeLabel, getToday, getMondayOf } from '../lib/schedule'
 import { FETCH_DAYS } from '../constants'
 import { DaySection } from './DaySection'
 import { DatePickerPopover } from './DatePickerPopover'
@@ -34,25 +34,26 @@ export function ScheduleGrid({
   onDayFilterChange,
   onViewDateChange,
 }: ScheduleGridProps) {
-  const dates = getWindowDates(startDate, FETCH_DAYS).filter(d => isVisibleDay(d, dayFilter) && !isPast(d))
+  const displayDays = dayFilter === 'fri-sun' ? 7 : FETCH_DAYS
+  const dates = getWindowDates(startDate, displayDays).filter(d => isVisibleDay(d, dayFilter))
   const queriesByFacilityId = Object.fromEntries(facilityIds.map((id, i) => [id, queries[i]]))
   const navLabel = formatListRangeLabel(startDate, FETCH_DAYS)
 
   if (facilityIds.length === 0) {
     return (
-      <p className="text-center text-gray-400 mt-16 px-6">
+      <p className="text-center text-on-surface-variant mt-16 px-6 font-body">
         Välj minst en anläggning för att se lediga tider.
       </p>
     )
   }
 
   return (
-    <div className="px-3 pt-2 pb-16 lg:pb-6">
+    <div className="px-3 pt-3 pb-16 lg:pb-6">
       {/* Inline nav row */}
-      <div className="flex items-center gap-2 mb-3 flex-wrap">
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
         <button
           onClick={() => onNavigate(-1)}
-          className="shrink-0 w-8 h-8 rounded-lg bg-gray-100 text-gray-600 flex items-center justify-center active:bg-gray-200 text-lg"
+          className="shrink-0 w-9 h-9 rounded-md bg-surface-container text-on-surface flex items-center justify-center active:bg-surface-container-high text-lg font-display"
           aria-label="Föregående period"
         >
           ‹
@@ -63,7 +64,7 @@ export function ScheduleGrid({
           days={FETCH_DAYS}
           onSelect={d => onViewDateChange(getMondayOf(d))}
           trigger={
-            <button className="shrink-0 text-sm font-semibold text-gray-700 min-w-[110px] text-center px-2 py-1 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors">
+            <button className="shrink-0 text-label-lg font-display text-on-surface min-w-[110px] text-center px-3 py-1.5 rounded-md hover:bg-surface-container active:bg-surface-container-high transition-colors">
               {navLabel}
             </button>
           }
@@ -71,7 +72,7 @@ export function ScheduleGrid({
 
         <button
           onClick={() => onNavigate(1)}
-          className="shrink-0 w-8 h-8 rounded-lg bg-gray-100 text-gray-600 flex items-center justify-center active:bg-gray-200 text-lg"
+          className="shrink-0 w-9 h-9 rounded-md bg-surface-container text-on-surface flex items-center justify-center active:bg-surface-container-high text-lg font-display"
           aria-label="Nästa period"
         >
           ›
@@ -79,28 +80,26 @@ export function ScheduleGrid({
 
         <button
           onClick={() => onViewDateChange(getToday())}
-          className="shrink-0 text-xs font-medium px-2.5 py-1.5 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 active:bg-gray-200"
+          className="shrink-0 text-label-sm font-semibold px-3 py-2 rounded-md bg-surface-container text-on-surface-variant hover:bg-surface-container-high active:bg-surface-container-high font-body"
         >
           Idag
         </button>
-
-        <div className="w-px h-5 bg-gray-200 shrink-0" />
 
         <ToggleGroup.Root
           type="single"
           value={dayFilter}
           onValueChange={v => { if (v) onDayFilterChange(v as DayFilter) }}
-          className="flex shrink-0 bg-gray-100 rounded-lg p-0.5 text-xs font-medium"
+          className="flex shrink-0 bg-surface-container rounded-md p-0.5 text-label-sm font-semibold font-body"
         >
           <ToggleGroup.Item
             value="fri-sun"
-            className="px-2.5 py-1.5 rounded-md transition-colors data-[state=on]:bg-white data-[state=on]:text-gray-900 data-[state=on]:shadow-sm text-gray-500"
+            className="px-3 py-1.5 rounded-[0.5rem] transition-colors data-[state=on]:bg-surface-container-lowest data-[state=on]:text-on-surface data-[state=on]:shadow-ambient text-on-surface-variant"
           >
             Fre–Sön
           </ToggleGroup.Item>
           <ToggleGroup.Item
             value="all"
-            className="px-2.5 py-1.5 rounded-md transition-colors data-[state=on]:bg-white data-[state=on]:text-gray-900 data-[state=on]:shadow-sm text-gray-500"
+            className="px-3 py-1.5 rounded-[0.5rem] transition-colors data-[state=on]:bg-surface-container-lowest data-[state=on]:text-on-surface data-[state=on]:shadow-ambient text-on-surface-variant"
           >
             Alla
           </ToggleGroup.Item>

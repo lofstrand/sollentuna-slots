@@ -55,32 +55,32 @@ export function DatePickerPopover({ selected, days, onSelect, trigger }: DatePic
       <Popover.Portal>
         <Popover.Content
           sideOffset={6}
-          className="z-50 w-72 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden focus:outline-none"
+          className="z-50 w-72 bg-surface-container-lowest rounded-xl shadow-ambient-lg border border-outline-variant/40 overflow-hidden focus:outline-none"
         >
           {/* Month navigation */}
-          <div className="flex items-center justify-between px-3 py-2.5 border-b border-gray-100">
+          <div className="flex items-center justify-between px-3 py-2.5">
             <button
               onClick={() => navigate(-1)}
-              className="w-7 h-7 rounded-lg bg-gray-100 text-gray-600 flex items-center justify-center hover:bg-gray-200 active:bg-gray-300 text-lg leading-none"
+              className="w-8 h-8 rounded-md bg-surface-container text-on-surface flex items-center justify-center hover:bg-surface-container-high active:bg-surface-container-high text-lg leading-none font-display"
               aria-label="Föregående månad"
             >‹</button>
-            <span className="text-sm font-semibold text-gray-700 capitalize">{formatMonthLabel(viewDate)}</span>
+            <span className="text-label-lg font-display text-on-surface capitalize">{formatMonthLabel(viewDate)}</span>
             <button
               onClick={() => navigate(1)}
-              className="w-7 h-7 rounded-lg bg-gray-100 text-gray-600 flex items-center justify-center hover:bg-gray-200 active:bg-gray-300 text-lg leading-none"
+              className="w-8 h-8 rounded-md bg-surface-container text-on-surface flex items-center justify-center hover:bg-surface-container-high active:bg-surface-container-high text-lg leading-none font-display"
               aria-label="Nästa månad"
             >›</button>
           </div>
 
           {/* Day headers */}
-          <div className="grid grid-cols-7 px-2 pt-2">
+          <div className="grid grid-cols-7 px-2 pt-1 bg-surface-container-low">
             {DAY_HEADERS.map(d => (
-              <div key={d} className="pb-1 text-center text-[11px] font-semibold text-gray-400 uppercase tracking-wide">{d}</div>
+              <div key={d} className="pb-1 text-center text-label-sm font-body text-on-surface-variant uppercase tracking-wide">{d}</div>
             ))}
           </div>
 
           {/* Week rows */}
-          <div className="px-2 pb-2">
+          <div className="px-2 pb-2 pt-1">
             {weeks.map((week, wi) => (
               <div key={wi} className="grid grid-cols-7">
                 {week.map((date, di) => {
@@ -91,11 +91,11 @@ export function DatePickerPopover({ selected, days, onSelect, trigger }: DatePic
                   const isInRange = inRange(dateStr)
                   const isEnd = dateStr === rangeEndStr
 
-                  // Range highlight strip — spans the full cell width, centered vertically
+                  // Range highlight strip
                   const stripClass = isInRange || isEnd
-                    ? `absolute inset-y-0.5 ${isEnd ? 'right-1/2 left-0' : 'inset-x-0'} bg-blue-100`
+                    ? `absolute inset-y-0.5 ${isEnd ? 'right-1/2 left-0' : 'inset-x-0'} bg-primary-fixed/30`
                     : isStart && rangeEndStr
-                      ? 'absolute inset-y-0.5 left-1/2 right-0 bg-blue-100'
+                      ? 'absolute inset-y-0.5 left-1/2 right-0 bg-primary-fixed/30'
                       : ''
 
                   return (
@@ -103,12 +103,12 @@ export function DatePickerPopover({ selected, days, onSelect, trigger }: DatePic
                       {stripClass && <div className={stripClass} />}
                       <button
                         onClick={() => handleSelect(date)}
-                        className={`relative z-10 w-8 h-8 flex items-center justify-center rounded-full text-sm font-medium transition-colors
-                          ${isStart ? 'bg-blue-600 text-white' : ''}
-                          ${isEnd ? 'bg-blue-500 text-white' : ''}
-                          ${isInRange ? 'text-blue-700 hover:bg-blue-200' : ''}
-                          ${isToday && !isStart && !isEnd ? 'ring-2 ring-blue-500 text-blue-600' : ''}
-                          ${!isStart && !isEnd && !isInRange && !isToday ? 'text-gray-800 hover:bg-gray-100 active:bg-gray-200' : ''}
+                        className={`relative z-10 w-8 h-8 flex items-center justify-center rounded-full text-label-md font-body font-semibold transition-colors
+                          ${isToday ? 'bg-gradient-to-b from-primary to-primary-container text-white' : ''}
+                          ${isStart && !isToday ? 'bg-primary/25 text-primary font-bold ring-2 ring-primary/30' : ''}
+                          ${isEnd && !isToday ? 'bg-primary-container text-white' : ''}
+                          ${isInRange ? 'text-primary hover:bg-primary-fixed/40' : ''}
+                          ${!isStart && !isEnd && !isInRange && !isToday ? 'text-on-surface hover:bg-surface-container active:bg-surface-container-high' : ''}
                         `}
                       >
                         {date.getDate()}

@@ -12,7 +12,7 @@ import {
   toDateString,
   computeFreeSlots,
 } from '../lib/schedule'
-import { FacilitySlots } from './FacilitySlots'
+import { FacilityGroup } from './FacilityGroup'
 
 interface CalendarViewProps {
   queries: FacilityQuery[]
@@ -120,42 +120,42 @@ export function CalendarView({
 
   if (facilityIds.length === 0) {
     return (
-      <p className="text-center text-gray-400 mt-16 px-6">
+      <p className="text-center text-on-surface-variant mt-16 px-6 font-body">
         Välj minst en anläggning för att se lediga tider.
       </p>
     )
   }
 
   return (
-    <div className="px-3 pt-2 pb-16 lg:pb-6 lg:grid lg:grid-cols-[1fr_320px] lg:gap-4 lg:items-start">
-      {/* Calendar grid — moves to the right on lg+ */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-4 lg:mb-0 lg:order-last">
+    <div className="px-3 pt-3 pb-16 lg:pb-6 lg:grid lg:grid-cols-[1fr_320px] lg:gap-4 lg:items-start">
+      {/* Calendar grid */}
+      <div className="bg-surface-container-lowest rounded-xl shadow-ambient border border-outline-variant/40 overflow-hidden mb-4 lg:mb-0 lg:order-last">
         {/* Month navigation */}
-        <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100">
+        <div className="flex items-center justify-between px-3 py-2.5">
           <button
             onClick={() => onNavigate(-1)}
-            className="w-7 h-7 rounded-lg bg-gray-100 text-gray-600 flex items-center justify-center hover:bg-gray-200 active:bg-gray-200 text-lg"
+            className="w-8 h-8 rounded-md bg-surface-container text-on-surface flex items-center justify-center hover:bg-surface-container-high active:bg-surface-container-high text-lg font-display"
             aria-label="Föregående månad"
           >‹</button>
           <Popover.Root onOpenChange={open => { if (open) setPickerYear(viewDate.getFullYear()) }}>
-            <Popover.Trigger className="text-sm font-semibold text-gray-700 px-2 py-1 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors capitalize">
+            <Popover.Trigger className="text-label-lg font-display text-on-surface px-3 py-1.5 rounded-md hover:bg-surface-container active:bg-surface-container-high transition-colors capitalize">
               {formatMonthLabel(viewDate)}
             </Popover.Trigger>
             <Popover.Portal>
               <Popover.Content
                 sideOffset={6}
-                className="z-50 w-56 bg-white rounded-xl shadow-xl border border-gray-100 p-3 focus:outline-none"
+                className="z-50 w-56 bg-surface-container-lowest rounded-xl shadow-ambient-lg p-3 focus:outline-none"
               >
                 {/* Year navigation */}
                 <div className="flex items-center justify-between mb-3">
                   <button
                     onClick={() => setPickerYear(y => y - 1)}
-                    className="w-7 h-7 rounded-lg bg-gray-100 text-gray-600 flex items-center justify-center hover:bg-gray-200 text-lg leading-none"
+                    className="w-8 h-8 rounded-md bg-surface-container text-on-surface flex items-center justify-center hover:bg-surface-container-high text-lg leading-none font-display"
                   >‹</button>
-                  <span className="text-sm font-semibold text-gray-700">{pickerYear}</span>
+                  <span className="text-label-lg font-display text-on-surface">{pickerYear}</span>
                   <button
                     onClick={() => setPickerYear(y => y + 1)}
-                    className="w-7 h-7 rounded-lg bg-gray-100 text-gray-600 flex items-center justify-center hover:bg-gray-200 text-lg leading-none"
+                    className="w-8 h-8 rounded-md bg-surface-container text-on-surface flex items-center justify-center hover:bg-surface-container-high text-lg leading-none font-display"
                   >›</button>
                 </div>
                 {/* Month grid */}
@@ -167,8 +167,8 @@ export function CalendarView({
                         <button
                           key={mi}
                           onClick={() => onViewDateChange(new Date(pickerYear, mi, 1))}
-                          className={`py-1.5 rounded-lg text-sm font-medium transition-colors
-                            ${isCurrent ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100 active:bg-gray-200'}
+                          className={`py-1.5 rounded-md text-label-md font-body font-semibold transition-colors
+                            ${isCurrent ? 'bg-gradient-to-b from-primary to-primary-container text-white' : 'text-on-surface hover:bg-surface-container active:bg-surface-container-high'}
                           `}
                         >
                           {name}
@@ -180,29 +180,31 @@ export function CalendarView({
               </Popover.Content>
             </Popover.Portal>
           </Popover.Root>
-          <button
-            onClick={() => onNavigate(1)}
-            className="w-7 h-7 rounded-lg bg-gray-100 text-gray-600 flex items-center justify-center hover:bg-gray-200 active:bg-gray-200 text-lg"
-            aria-label="Nästa månad"
-          >›</button>
-          <button
-            onClick={() => { onViewDateChange(getToday()); setSelectedDate(getToday()) }}
-            className="text-xs font-medium px-2.5 py-1.5 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 active:bg-gray-200"
-          >
-            Idag
-          </button>
+          <div className="flex gap-1">
+            <button
+              onClick={() => onNavigate(1)}
+              className="w-8 h-8 rounded-md bg-surface-container text-on-surface flex items-center justify-center hover:bg-surface-container-high active:bg-surface-container-high text-lg font-display"
+              aria-label="Nästa månad"
+            >›</button>
+            <button
+              onClick={() => { onViewDateChange(getToday()); setSelectedDate(getToday()) }}
+              className="text-label-sm font-semibold px-3 py-1.5 rounded-md bg-surface-container text-on-surface-variant hover:bg-surface-container-high active:bg-surface-container-high font-body"
+            >
+              Idag
+            </button>
+          </div>
         </div>
 
         {/* Day-of-week headers */}
-        <div className="grid grid-cols-7 border-b border-gray-100">
+        <div className="grid grid-cols-7 bg-surface-container-low">
           {DAY_HEADERS.map(d => (
-            <div key={d} className="py-2 text-center text-xs font-semibold text-gray-400">{d}</div>
+            <div key={d} className="py-2 text-center text-label-sm font-body text-on-surface-variant">{d}</div>
           ))}
         </div>
 
         {/* Week rows */}
         {weeks.map((week, wi) => (
-          <div key={wi} className={`grid grid-cols-7 ${wi < weeks.length - 1 ? 'border-b border-gray-100' : ''}`}>
+          <div key={wi} className="grid grid-cols-7">
             {week.map((date, di) => {
               if (!date) return <div key={di} className="py-3" />
 
@@ -223,100 +225,96 @@ export function CalendarView({
                   onClick={() => setSelectedDate(isSelected ? null : date)}
                   disabled={past}
                   aria-label={`${formatDayLabel(date)}${availLabel ? `, ${availLabel}` : ''}`}
-                  className={`flex flex-col items-center py-2 transition-colors
-                    ${isSelected ? 'bg-blue-50' : 'active:bg-gray-50'}
-                    ${past ? 'opacity-25 cursor-default' : ''}
-                    ${di < 6 ? 'border-r border-gray-50' : ''}
+                  className={`flex flex-col items-center py-3 transition-colors
+                    ${past ? 'opacity-25 cursor-default' :
+                      isSelected ? 'bg-primary/15' :
+                      avail === 'free' ? 'bg-primary/[0.06] active:bg-primary/10' :
+                      avail === 'busy' ? 'bg-tertiary/[0.05] active:bg-surface-container-low' :
+                      'active:bg-surface-container-low'
+                    }
                   `}
                 >
-                  <span className={`text-sm font-semibold w-7 h-7 flex items-center justify-center rounded-full
-                    ${isToday ? 'bg-blue-600 text-white' : isSelected ? 'text-blue-700' : 'text-gray-800'}
+                  <span className={`text-label-lg font-body w-8 h-8 flex items-center justify-center rounded-full
+                    ${isToday ? 'bg-gradient-to-b from-primary to-primary-container text-white' :
+                      isSelected ? 'bg-primary/25 text-primary font-bold ring-2 ring-primary/30' :
+                      !past && avail === 'free' ? 'text-primary font-semibold' :
+                      'text-on-surface'
+                    }
                   `}>
                     {date.getDate()}
                   </span>
-                  <div className="mt-0.5 h-1.5 flex items-center justify-center">
-                    {avail === 'loading' && <div className="h-1 w-5 rounded-full bg-gray-200 animate-pulse" />}
-                    {avail === 'free'    && <div className="h-1.5 w-1.5 rounded-full bg-green-500" />}
-                    {avail === 'busy'    && <div className="h-1.5 w-1.5 rounded-full bg-red-300" />}
-                  </div>
+                  {avail === 'loading' && !past && (
+                    <div className="mt-1 h-1 w-5 rounded-full bg-surface-container-high animate-pulse" />
+                  )}
                 </button>
               )
             })}
           </div>
         ))}
 
-        {/* Legend */}
-        <div className="flex items-center gap-4 px-4 py-2 border-t border-gray-100 bg-gray-50">
-          <div className="flex items-center gap-1.5">
-            <div className="h-2 w-2 rounded-full bg-green-500" />
-            <span className="text-xs text-gray-500">Ledig tid</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="h-2 w-2 rounded-full bg-red-300" />
-            <span className="text-xs text-gray-500">Inga lediga tider</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="h-2 w-2 rounded-full bg-gray-300" />
-            <span className="text-xs text-gray-500">Laddar</span>
-          </div>
-        </div>
       </div>
 
-      {/* Day detail panel — hidden on mobile unless a date is selected; always visible on lg+ */}
-      <div className={`bg-white rounded-xl border border-gray-200 overflow-hidden ${selectedDate ? '' : 'hidden lg:flex lg:items-center lg:justify-center lg:min-h-48'}`}>
+      {/* Day detail panel */}
+      <div className={`${selectedDate ? '' : 'hidden lg:flex lg:items-center lg:justify-center lg:min-h-48 bg-surface-container-lowest rounded-xl shadow-ambient border border-outline-variant/40'}`}>
         {selectedDate ? (
           <>
-            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-              <h2 className="font-semibold text-gray-800 capitalize">
-                {formatDayLabel(selectedDate)}
-              </h2>
+            <div className="px-4 pt-4 pb-2 flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <h2 className="font-display text-headline-lg text-on-surface capitalize">
+                  {formatDayLabel(selectedDate)}
+                </h2>
+                {(() => {
+                  const dateStr = toDateString(selectedDate)
+                  let freeCount = 0
+                  for (const id of facilityIds) {
+                    const q = queriesByFacilityId[id]
+                    if (q?.data) freeCount += computeFreeSlots(q.data.events, dateStr, minDuration).length
+                  }
+                  const isLoading = facilityIds.some(id => queriesByFacilityId[id]?.isLoading)
+                  return (
+                    <span className={`text-label-sm font-semibold font-body uppercase tracking-wider mt-1 block ${
+                      isLoading ? 'text-on-surface-variant' : freeCount > 0 ? 'text-primary' : 'text-tertiary'
+                    }`}>
+                      {isLoading ? 'Hämtar tider…' : freeCount > 0 ? `${freeCount} lediga tider` : 'Inga lediga tider'}
+                    </span>
+                  )
+                })()}
+              </div>
               <button
                 onClick={() => setSelectedDate(null)}
-                className="text-gray-400 text-lg px-1"
+                className="text-on-surface-variant text-lg px-1 hover:text-on-surface mt-1"
                 aria-label="Stäng"
               >
                 ✕
               </button>
             </div>
-            {facilityIds.some(id => queriesByFacilityId[id]?.isLoading) ? (
-              <div className="px-3 py-3 space-y-2 animate-pulse">
-                {visibleFacilities.map(f => (
-                  <div key={f.id} className="px-3 py-2 space-y-2">
-                    <div className="h-2.5 w-24 bg-gray-200 rounded" />
-                    {[1, 2].map(i => (
-                      <div key={i} className="flex items-center gap-3 py-1">
-                        <div className="h-4 w-4 rounded-full bg-gray-200 shrink-0" />
-                        <div className="flex-1 space-y-1.5">
-                          <div className="h-3 bg-gray-200 rounded w-1/3" />
-                          <div className="h-2 bg-gray-200 rounded w-1/2" />
-                        </div>
-                        <div className="h-7 w-16 bg-gray-200 rounded-lg shrink-0" />
-                      </div>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="px-3 py-3 space-y-1">
-                {visibleFacilities.map(facility => (
-                  <FacilitySlots
-                    key={facility.id}
-                    facility={facility}
-                    data={queriesByFacilityId[facility.id]?.data}
-                    isLoading={queriesByFacilityId[facility.id]?.isLoading ?? false}
-                    showEmpty={showEmpty}
-                    isError={queriesByFacilityId[facility.id]?.isError ?? false}
-                    date={selectedDate}
-                    minDuration={minDuration}
-                    showBooked={showBooked}
-                    onBook={onBook}
-                  />
-                ))}
-              </div>
-            )}
+            {(() => {
+              const groupMap = new Map<string, typeof visibleFacilities>()
+              for (const facility of visibleFacilities) {
+                const list = groupMap.get(facility.group) ?? []
+                groupMap.set(facility.group, [...list, facility])
+              }
+              return (
+                <div className="px-3 py-3 grid gap-4">
+                  {[...groupMap.entries()].map(([groupName, groupFacilities]) => (
+                    <FacilityGroup
+                      key={groupName}
+                      groupName={groupName}
+                      facilities={groupFacilities}
+                      queriesByFacilityId={queriesByFacilityId}
+                      date={selectedDate}
+                      minDuration={minDuration}
+                      showBooked={showBooked}
+                      showEmpty={showEmpty}
+                      onBook={onBook}
+                    />
+                  ))}
+                </div>
+              )
+            })()}
           </>
         ) : (
-          <p className="text-sm text-gray-400 px-6 text-center">Välj ett datum för att se lediga tider.</p>
+          <p className="text-label-md text-on-surface-variant px-6 text-center font-body">Välj ett datum för att se lediga tider.</p>
         )}
       </div>
     </div>

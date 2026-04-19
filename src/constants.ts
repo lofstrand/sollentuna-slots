@@ -10,16 +10,18 @@ export const BOOKING_EMAIL_SUBJECT = 'Bokningsförfrågan fotbollsplan'
 
 export const EMAIL_TEMPLATE = `Hej,
 
-Vi önskar boka följande tid för träning/match:
+Vi önskar boka en plan för {bokningsTyp} enligt följande:
 
-Förening och lag: {lagNamn}
-Ledare: {ledarNamn}
-Mail: {ledarMail}
-Telefon: {ledarTel}
-Önskad tid: {onskadTid}
+Förening/lag: {lagNamn}
+Plan: {plan}
+Datum: {datum}
+Tid: {tid}
+
+Vänligen återkom om tiden är tillgänglig.
 
 Med vänliga hälsningar,
-{ledarNamn}`
+{ledarNamn}
+{ledarMail} | {ledarTel}`
 
 export const FACILITIES: Facility[] = [
   // Norrvikens IP

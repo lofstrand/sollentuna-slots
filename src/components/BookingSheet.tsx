@@ -1,337 +1,493 @@
-import { useRef, useState, useEffect } from 'react'
-import * as Dialog from '@radix-ui/react-dialog'
-import * as Slider from '@radix-ui/react-slider'
-import type { BookingFormState, SelectedSlot } from '../types'
-import { minToTime, formatDayLabel } from '../lib/schedule'
-import { applyTemplate } from '../lib/template'
-import { EMAIL_TEMPLATE, BOOKING_EMAIL, BOOKING_EMAIL_SUBJECT, MIN_BOOKING_DURATION } from '../constants'
+import { useRef, useState, useEffect, useMemo } from "react";
+import * as Slider from "@radix-ui/react-slider";
+import type { BookingFormState, SelectedSlot } from "../types";
+import { minToTime } from "../lib/schedule";
+import { applyTemplate } from "../lib/template";
+import {
+  EMAIL_TEMPLATE,
+  BOOKING_EMAIL,
+  BOOKING_EMAIL_SUBJECT,
+  MIN_BOOKING_DURATION,
+} from "../constants";
 
 interface BookingSheetProps {
-  slot: SelectedSlot | null
-  minDuration: number
-  form: BookingFormState
-  onFormChange: (form: BookingFormState) => void
-  onClose: () => void
+  slot: SelectedSlot | null;
+  minDuration: number;
+  form: BookingFormState;
+  onFormChange: (form: BookingFormState) => void;
+  onClose: () => void;
 }
 
-const STEP = 15 // minutes
+const STEP = 15; // minutes
+const DAYS_SV = [
+  "Söndag",
+  "Måndag",
+  "Tisdag",
+  "Onsdag",
+  "Torsdag",
+  "Fredag",
+  "Lördag",
+];
+const MONTHS_SV = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "Maj",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Okt",
+  "Nov",
+  "Dec",
+];
 
-/** Parse "HH:MM" to minutes, returns null if invalid */
 function parseTime(val: string): number | null {
-  const m = val.match(/^(\d{1,2}):(\d{2})$/)
-  if (!m) return null
-  const h = Number(m[1])
-  const min = Number(m[2])
-  if (h > 23 || min > 59) return null
-  return h * 60 + min
+  const m = val.match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return null;
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  if (h > 23 || min > 59) return null;
+  return h * 60 + min;
 }
 
-/** Round to nearest 15-min step */
 function snap(val: number): number {
-  return Math.round(val / STEP) * STEP
+  return Math.round(val / STEP) * STEP;
 }
 
-export function BookingSheet({ slot, minDuration, form, onFormChange, onClose }: BookingSheetProps) {
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
+export function BookingSheet({
+  slot,
+  minDuration,
+  form,
+  onFormChange,
+  onClose,
+}: BookingSheetProps) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const [bookStart, setBookStart] = useState(0)
-  const [bookEnd, setBookEnd]     = useState(0)
+  const [selectedSlotIdx, setSelectedSlotIdx] = useState(0);
+  const [bookStart, setBookStart] = useState(0);
+  const [bookEnd, setBookEnd] = useState(0);
+  const [timeExpanded, setTimeExpanded] = useState(() => window.innerWidth >= 1024);
 
-  // Reset whenever a new slot opens
+  const availableSlots = useMemo(() => slot?.availableSlots ?? [], [slot]);
+  const activeSlot = availableSlots[selectedSlotIdx] ?? { startMin: slot?.startMin ?? 0, endMin: slot?.endMin ?? 0 };
+
   useEffect(() => {
     if (slot) {
-      const start = snap(slot.startMin)
-      const end   = snap(Math.min(slot.startMin + minDuration, slot.endMin))
-      setBookStart(start)
-      setBookEnd(end)
+      setSelectedSlotIdx(0);
+      setTimeExpanded(window.innerWidth >= 1024);
     }
-  }, [slot, minDuration])  // minDuration used only for the initial default end time
+  }, [slot]);
 
-  const isOpen = slot !== null
+  useEffect(() => {
+    const s = availableSlots[selectedSlotIdx];
+    if (s) {
+      const start = snap(s.startMin);
+      const end = snap(Math.min(s.startMin + minDuration, s.endMin));
+      setBookStart(start);
+      setBookEnd(end);
+    }
+  }, [selectedSlotIdx, slot, minDuration, availableSlots]);
 
-  // Derived values — safe to use only when slot is non-null (guarded in render below)
-  const slotStart = slot ? snap(slot.startMin) : 0
-  const slotEnd   = slot ? snap(slot.endMin)   : 0
+  const slotStart = snap(activeSlot.startMin);
+  const slotEnd = snap(activeSlot.endMin);
 
-  // Keep values valid
-  const safeStart = Math.max(slotStart, Math.min(bookStart, slotEnd - STEP))
-  const safeEnd   = Math.max(safeStart + STEP, Math.min(bookEnd, slotEnd))
+  const safeStart = Math.max(slotStart, Math.min(bookStart, slotEnd - MIN_BOOKING_DURATION));
+  const safeEnd = Math.max(safeStart + MIN_BOOKING_DURATION, Math.min(bookEnd, slotEnd));
 
   function handleSlider([s, e]: [number, number]) {
-    // Enforce minDuration — if thumbs would be too close, push the other one
     if (e - s < MIN_BOOKING_DURATION) {
-      // Decide which thumb moved by comparing distance
       if (Math.abs(s - safeStart) > Math.abs(e - safeEnd)) {
-        // end thumb moved
-        setBookEnd(Math.min(slotEnd, s + MIN_BOOKING_DURATION))
-        setBookStart(s)
+        setBookEnd(Math.min(slotEnd, s + MIN_BOOKING_DURATION));
+        setBookStart(s);
       } else {
-        // start thumb moved
-        setBookStart(Math.max(slotStart, e - MIN_BOOKING_DURATION))
-        setBookEnd(e)
+        setBookStart(Math.max(slotStart, e - MIN_BOOKING_DURATION));
+        setBookEnd(e);
       }
     } else {
-      setBookStart(s)
-      setBookEnd(e)
+      setBookStart(s);
+      setBookEnd(e);
     }
   }
 
   function handleStartInput(raw: string) {
-    const val = parseTime(raw)
-    if (val === null) return
-    const clamped = snap(Math.max(slotStart, Math.min(val, safeEnd - MIN_BOOKING_DURATION)))
-    setBookStart(clamped)
+    const val = parseTime(raw);
+    if (val === null) return;
+    const clamped = snap(
+      Math.max(slotStart, Math.min(val, safeEnd - MIN_BOOKING_DURATION)),
+    );
+    setBookStart(clamped);
   }
 
   function handleEndInput(raw: string) {
-    const val = parseTime(raw)
-    if (val === null) return
-    const clamped = snap(Math.min(slotEnd, Math.max(val, safeStart + MIN_BOOKING_DURATION)))
-    setBookEnd(clamped)
+    const val = parseTime(raw);
+    if (val === null) return;
+    const clamped = snap(
+      Math.min(slotEnd, Math.max(val, safeStart + MIN_BOOKING_DURATION)),
+    );
+    setBookEnd(clamped);
   }
 
-  const duration    = safeEnd - safeStart
-  const durationH   = Math.floor(duration / 60)
-  const durationM   = duration % 60
-  const durationLabel = [durationH > 0 && `${durationH} h`, durationM > 0 && `${durationM} min`]
-    .filter(Boolean).join(' ')
+  const duration = safeEnd - safeStart;
+  const durationH = Math.floor(duration / 60);
+  const durationM = duration % 60;
+  const durationLabel = [
+    durationH > 0 && `${durationH}h`,
+    durationM > 0 && `${durationM}m`,
+  ]
+    .filter(Boolean)
+    .join(" ");
 
-  const slotDate = slot ? new Date(slot.date + 'T00:00:00') : null
-
-  const onskadTid = slot ? `${slot.facilityName}, ${slot.date}, ${minToTime(safeStart)}–${minToTime(safeEnd)}` : ''
+  const slotDate = slot ? new Date(slot.date + "T00:00:00") : null;
 
   const emailBody = applyTemplate(EMAIL_TEMPLATE, {
-    lagNamn:   form.lagNamn,
+    lagNamn: form.lagNamn,
     ledarNamn: form.ledarNamn,
     ledarMail: form.ledarMail,
-    ledarTel:  form.ledarTel,
-    onskadTid,
-  })
+    ledarTel: form.ledarTel,
+    bokningsTyp: form.bokningsTyp,
+    plan: slot?.facilityName ?? '',
+    datum: slot?.date ?? '',
+    tid: slot ? `${minToTime(safeStart)}–${minToTime(safeEnd)}` : '',
+  });
 
-  const mailtoHref = `mailto:${BOOKING_EMAIL}?subject=${encodeURIComponent(BOOKING_EMAIL_SUBJECT)}&body=${encodeURIComponent(emailBody)}`
+  const mailtoHref = `mailto:${BOOKING_EMAIL}?subject=${encodeURIComponent(BOOKING_EMAIL_SUBJECT)}&body=${encodeURIComponent(emailBody)}`;
 
-  const formValid = !!(form.lagNamn && form.ledarNamn && form.ledarMail && form.ledarTel)
+  const formValid = !!(
+    form.lagNamn &&
+    form.ledarNamn &&
+    form.ledarMail &&
+    form.ledarTel
+  );
 
-  const [copied, setCopied] = useState(false)
+  const [copied, setCopied] = useState(false);
 
   async function handleCopy() {
     try {
-      await navigator.clipboard.writeText(emailBody)
+      await navigator.clipboard.writeText(emailBody);
     } catch {
       if (textareaRef.current) {
-        textareaRef.current.select()
-        document.execCommand('copy')
+        textareaRef.current.select();
+        document.execCommand("copy");
       }
     }
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   }
 
   function update(field: keyof BookingFormState, value: string) {
-    onFormChange({ ...form, [field]: value })
+    onFormChange({ ...form, [field]: value });
   }
 
-  if (!isOpen || !slot) return null
+  if (!slot) return null;
 
   return (
-    <Dialog.Root open={isOpen} onOpenChange={v => { if (!v) onClose() }}>
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40" />
-        <Dialog.Content
-          className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl max-h-[85vh] flex flex-col shadow-2xl focus:outline-none md:bottom-auto md:top-1/2 md:left-1/2 md:right-auto md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-lg md:rounded-2xl md:max-h-[85vh]"
-          aria-describedby={undefined}
+    <div className="fixed inset-0 z-50 bg-surface flex flex-col">
+      {/* Top bar with back button */}
+      <header className="shrink-0 flex items-center gap-3 px-4 h-14 bg-surface/90 backdrop-blur-xl shadow-ambient">
+        <button
+          onClick={onClose}
+          className="flex items-center gap-1 text-primary active:opacity-70"
+          aria-label="Tillbaka"
         >
-        {/* Handle + header — fixed at top, never scrolled away */}
-        <div className="shrink-0">
-          <div className="flex justify-center pt-3 pb-1 md:hidden">
-            <div className="w-10 h-1 bg-gray-300 rounded-full" />
-          </div>
+          <span className="material-symbols-outlined text-xl">arrow_back</span>
+        </button>
+        <h1 className="font-display font-bold text-on-surface truncate">
+          {slot.facilityName}
+        </h1>
+      </header>
 
-          <div className="px-5 py-3 border-b border-gray-100">
-            <div className="flex items-start justify-between">
-              <div>
-                <Dialog.Title className="font-bold text-gray-900">{slot.facilityName}</Dialog.Title>
-                <p className="text-xs font-medium text-blue-600 mt-0.5">Bokningsförfrågan via e-post</p>
-                <p className="text-sm text-gray-500 mt-0.5">{slotDate ? formatDayLabel(slotDate) : ''}</p>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  Tillgänglig {minToTime(slot.startMin)}–{minToTime(slot.endMin)}
-                </p>
+      {/* Scrollable content */}
+      <main className="flex-1 overflow-y-auto">
+        <div className="max-w-4xl mx-auto px-5 pt-6">
+          {/* Privacy notice — full width */}
+          <div className="flex items-center gap-3 bg-surface-container-low border border-primary/20 rounded-xl px-4 py-3">
+            <span className="material-symbols-outlined text-primary text-xl">shield</span>
+            <p className="text-label-md text-on-surface-variant font-body">
+              Ingen data lagras på våra servrar.
+            </p>
+          </div>
+        </div>
+        <div className="max-w-4xl mx-auto px-5 pb-6 lg:grid lg:grid-cols-[1fr_360px] lg:gap-8 lg:items-start">
+        <div className="space-y-6 mt-6">
+          {/* Contact details */}
+          <section>
+            <h2 className="font-display text-headline-sm text-on-surface mb-4">
+              Sökandes Uppgifter
+            </h2>
+            <div className="space-y-4">
+              <Field
+                label="Lag / Förening"
+                value={form.lagNamn}
+                placeholder="Sollentuna FK"
+                onChange={(v) => update("lagNamn", v)}
+              />
+              <Field
+                label="Fullständigt Namn"
+                value={form.ledarNamn}
+                placeholder="Erik Andersson"
+                onChange={(v) => update("ledarNamn", v)}
+              />
+              <Field
+                label="E-postadress"
+                value={form.ledarMail}
+                placeholder="erik@club.se"
+                type="email"
+                onChange={(v) => update("ledarMail", v)}
+              />
+              <Field
+                label="Telefon"
+                value={form.ledarTel}
+                placeholder="070-123 45 67"
+                type="tel"
+                onChange={(v) => update("ledarTel", v)}
+              />
+            </div>
+          </section>
+
+          {/* Booking type */}
+          <section>
+            <h2 className="font-display text-headline-sm text-on-surface mb-4">
+              Typ av bokning
+            </h2>
+            <div className="flex gap-2">
+              {([
+                { type: 'match', label: 'Match', icon: 'scoreboard' },
+                { type: 'träning', label: 'Träning', icon: 'sports_soccer' },
+              ] as const).map(({ type, label, icon }) => (
+                <button
+                  key={type}
+                  onClick={() => update('bokningsTyp', type)}
+                  className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-label-md font-body font-semibold transition-colors ${
+                    form.bokningsTyp === type
+                      ? 'bg-gradient-to-b from-primary to-primary-container text-white'
+                      : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-base leading-none">{icon}</span>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </section>
+
+          {/* Time selection */}
+          <section>
+            <h2 className="font-display text-headline-sm text-on-surface mb-4">
+              Önskad Tid
+            </h2>
+
+            {/* Slot picker — choose which time window */}
+            {availableSlots.length > 1 && (
+              <div className="flex flex-wrap gap-2 mb-4">
+                {availableSlots.map((s, i) => (
+                  <button
+                    key={i}
+                    onClick={() => { setSelectedSlotIdx(i); setTimeExpanded(window.innerWidth >= 1024) }}
+                    className={`px-3 py-2 rounded-lg text-label-md font-body font-semibold transition-colors ${
+                      i === selectedSlotIdx
+                        ? 'bg-primary text-white'
+                        : 'bg-surface-container text-on-surface-variant'
+                    }`}
+                  >
+                    {minToTime(s.startMin)} — {minToTime(s.endMin)}
+                  </button>
+                ))}
               </div>
-              <Dialog.Close className="text-gray-400 text-xl px-1 py-1" aria-label="Stäng">
-                ✕
-              </Dialog.Close>
-            </div>
-          </div>
-        </div>
+            )}
 
-        {/* Scrollable form + preview */}
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
-
-          {/* Time range picker */}
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-gray-800">Önskad tid</h3>
-              <span className="text-xs font-semibold text-green-700 bg-green-50 rounded-full px-2.5 py-0.5">{durationLabel}</span>
-            </div>
-
-            {/* Editable time inputs */}
-            <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden mb-5">
-              <input
-                type="time"
-                defaultValue={minToTime(safeStart)}
-                key={`start-${safeStart}`}
-                onBlur={e => handleStartInput(e.target.value)}
-                onChange={e => handleStartInput(e.target.value)}
-                className="flex-1 text-center py-3 text-sm font-medium text-gray-800 bg-white focus:outline-none focus:bg-blue-50"
-              />
-              <span className="text-gray-300 text-sm">–</span>
-              <input
-                type="time"
-                defaultValue={minToTime(safeEnd)}
-                key={`end-${safeEnd}`}
-                onBlur={e => handleEndInput(e.target.value)}
-                onChange={e => handleEndInput(e.target.value)}
-                className="flex-1 text-center py-3 text-sm font-medium text-gray-800 bg-white focus:outline-none focus:bg-blue-50"
-              />
-            </div>
-
-            {/* Range slider */}
-            <Slider.Root
-              min={slotStart}
-              max={slotEnd}
-              step={STEP}
-              value={[safeStart, safeEnd]}
-              onValueChange={handleSlider}
-              className="relative flex items-center w-full touch-none select-none h-10"
-            >
-              <Slider.Track className="relative bg-gray-200 rounded-full flex-1 h-2">
-                <Slider.Range className="absolute bg-green-500 rounded-full h-full" />
-              </Slider.Track>
-              <Slider.Thumb
-                className="block w-6 h-6 bg-white border-2 border-green-500 rounded-full shadow focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2 cursor-grab active:cursor-grabbing"
-                aria-label="Starttid"
-              />
-              <Slider.Thumb
-                className="block w-6 h-6 bg-white border-2 border-green-500 rounded-full shadow focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2 cursor-grab active:cursor-grabbing"
-                aria-label="Sluttid"
-              />
-            </Slider.Root>
-
-            {/* Slot boundary labels */}
-            <div className="flex justify-between text-xs text-gray-400 mt-1">
-              <span>{minToTime(slotStart)}</span>
-              <span>{minToTime(slotEnd)}</span>
-            </div>
-          </div>
-
-          <div className="border-t border-gray-100" />
-
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-gray-800">Kontaktuppgifter</h3>
+            {/* Green date/time card — tappable to expand fine-tuning */}
             <button
-              type="button"
-              onClick={() => onFormChange({ lagNamn: '', ledarNamn: '', ledarMail: '', ledarTel: '' })}
-              className="text-xs text-gray-400 hover:text-gray-600"
+              onClick={() => setTimeExpanded(!timeExpanded)}
+              className="w-full bg-gradient-to-b from-primary to-primary-container rounded-xl px-4 py-3 flex items-center justify-between text-left active:opacity-95 transition-opacity"
             >
-              Rensa
+              <div className="flex items-center gap-2.5">
+                <span className="material-symbols-outlined text-white/80 text-base">
+                  calendar_today
+                </span>
+                <div>
+                  <p className="text-white/80 text-label-sm font-body">
+                    {slotDate
+                      ? `${DAYS_SV[slotDate.getDay()]} ${slotDate.getDate()} ${MONTHS_SV[slotDate.getMonth()]}`
+                      : ""}
+                  </p>
+                  <p className="text-white font-display font-bold text-base leading-tight">
+                    {minToTime(safeStart)} - {minToTime(safeEnd)}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="bg-white/20 text-white font-bold text-label-sm rounded-full px-2 py-0.5 font-body">
+                  {durationLabel}
+                </span>
+                <span className={`material-symbols-outlined text-white/70 text-base transition-transform ${timeExpanded ? 'rotate-180' : ''}`}>
+                  expand_more
+                </span>
+              </div>
             </button>
-          </div>
-          <div className="space-y-3">
-            <Field
-              label="Lag / förening"
-              value={form.lagNamn}
-              placeholder="P2016 Norrviken / Sollentuna FK"
-              onChange={v => update('lagNamn', v)}
-            />
-            <Field
-              label="Ledare"
-              value={form.ledarNamn}
-              placeholder="Förnamn Efternamn"
-              onChange={v => update('ledarNamn', v)}
-            />
-            <Field
-              label="E-post"
-              value={form.ledarMail}
-              placeholder="ledare@example.com"
-              type="email"
-              onChange={v => update('ledarMail', v)}
-            />
-            <Field
-              label="Telefon"
-              value={form.ledarTel}
-              placeholder="070-000 00 00"
-              type="tel"
-              onChange={v => update('ledarTel', v)}
-            />
-          </div>
 
-          <div>
-            <h3 className="font-semibold text-gray-800 mb-2">Förhandsgranskning</h3>
-            <textarea
-              ref={textareaRef}
-              readOnly
-              value={emailBody}
-              rows={10}
-              className="w-full text-xs font-mono text-gray-600 bg-gray-200/70 border border-gray-300 rounded-lg p-3 resize-none cursor-default"
-            />
-          </div>
+            {/* Expandable time editor */}
+            {timeExpanded && (
+              <div className="mt-4 space-y-4 animate-in">
+                {/* Time inputs */}
+                <div className="flex items-center gap-3">
+                  <div className="flex-1">
+                    <span className="text-label-sm text-on-surface-variant font-body uppercase tracking-wider mb-1 block">
+                      Start
+                    </span>
+                    <input
+                      type="time"
+                      defaultValue={minToTime(safeStart)}
+                      key={`start-${safeStart}`}
+                      onBlur={(e) => handleStartInput(e.target.value)}
+                      onChange={(e) => handleStartInput(e.target.value)}
+                      className="w-full text-center py-3 text-label-lg font-body text-on-surface bg-surface-container-low rounded-md focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    />
+                  </div>
+                  <span className="text-on-surface-variant text-lg pt-5">
+                    —
+                  </span>
+                  <div className="flex-1">
+                    <span className="text-label-sm text-on-surface-variant font-body uppercase tracking-wider mb-1 block">
+                      Slut
+                    </span>
+                    <input
+                      type="time"
+                      defaultValue={minToTime(safeEnd)}
+                      key={`end-${safeEnd}`}
+                      onBlur={(e) => handleEndInput(e.target.value)}
+                      onChange={(e) => handleEndInput(e.target.value)}
+                      className="w-full text-center py-3 text-label-lg font-body text-on-surface bg-surface-container-low rounded-md focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    />
+                  </div>
+                </div>
+
+                {/* Slider */}
+                <Slider.Root
+                  min={slotStart}
+                  max={slotEnd}
+                  step={STEP}
+                  value={[safeStart, safeEnd]}
+                  onValueChange={handleSlider}
+                  className="relative flex items-center w-full touch-none select-none h-10"
+                >
+                  <Slider.Track className="relative bg-surface-container-high rounded-full flex-1 h-2">
+                    <Slider.Range className="absolute bg-gradient-to-r from-primary to-primary-container rounded-full h-full" />
+                  </Slider.Track>
+                  <Slider.Thumb
+                    className="block w-6 h-6 bg-surface-container-lowest border-2 border-primary rounded-full shadow-ambient focus:outline-none focus:ring-2 focus:ring-primary-fixed focus:ring-offset-2 cursor-grab active:cursor-grabbing"
+                    aria-label="Starttid"
+                  />
+                  <Slider.Thumb
+                    className="block w-6 h-6 bg-surface-container-lowest border-2 border-primary rounded-full shadow-ambient focus:outline-none focus:ring-2 focus:ring-primary-fixed focus:ring-offset-2 cursor-grab active:cursor-grabbing"
+                    aria-label="Sluttid"
+                  />
+                </Slider.Root>
+                <div className="flex justify-between text-label-sm text-on-surface-variant font-body">
+                  <span>{minToTime(slotStart)}</span>
+                  <span>{minToTime(slotEnd)}</span>
+                </div>
+              </div>
+            )}
+          </section>
+
         </div>
 
-        {/* CTAs */}
-        <div className="px-5 py-4 border-t border-gray-100 space-y-2" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
-          {!formValid && (
-            <p className="text-xs text-gray-400 text-center -mb-1">Fyll i alla fält för att fortsätta</p>
-          )}
-          <div className="flex gap-3">
+          {/* Preview — right column on desktop, inline on mobile */}
+          <section className="mt-6 lg:sticky lg:top-6 flex flex-col gap-3">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-display text-headline-sm text-on-surface">
+                Förhandsgranskning
+              </h2>
+              <button
+                onClick={formValid ? handleCopy : undefined}
+                disabled={!formValid}
+                className={`flex items-center gap-1.5 text-label-sm font-body font-semibold rounded-lg px-2.5 py-1.5 transition-colors ${
+                  formValid
+                    ? 'text-primary hover:bg-primary/10 active:bg-primary/15'
+                    : 'text-on-surface-variant opacity-40 cursor-not-allowed'
+                }`}
+              >
+                <span className="material-symbols-outlined text-base leading-none">content_copy</span>
+                {copied ? 'Kopierat ✓' : 'Kopiera'}
+              </button>
+            </div>
+            <div className="bg-surface-container-low rounded-xl p-4">
+              <textarea
+                ref={textareaRef}
+                readOnly
+                value={emailBody}
+                rows={emailBody.split('\n').length + 1}
+                className="w-full text-label-sm font-mono text-on-surface-variant bg-transparent resize-none cursor-default"
+              />
+            </div>
+            {/* Send button — inside preview column on desktop */}
             <a
               href={formValid ? mailtoHref : undefined}
-              onClick={!formValid ? e => e.preventDefault() : undefined}
-              className={`flex-1 text-sm font-semibold py-3 rounded-xl text-center transition-colors ${
+              onClick={!formValid ? (e) => e.preventDefault() : undefined}
+              className={`hidden lg:flex items-center justify-center gap-2 text-label-md font-bold py-3 rounded-xl text-center transition-all font-body ${
                 formValid
-                  ? 'bg-blue-600 text-white active:bg-blue-700'
-                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  ? "bg-gradient-to-b from-primary to-primary-container text-white active:opacity-90 shadow-lg shadow-primary/20"
+                  : "bg-surface-container-highest text-on-surface-variant cursor-not-allowed"
               }`}
             >
-              Öppna i mailklient
+              <span className="material-symbols-outlined text-lg">mail</span>
+              Skicka bokningsförfrågan
             </a>
-            <button
-              onClick={formValid ? handleCopy : undefined}
-              disabled={!formValid}
-              className={`flex-1 text-sm font-semibold py-3 rounded-xl transition-colors ${
-                formValid
-                  ? 'bg-gray-100 text-gray-700 active:bg-gray-200'
-                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-              }`}
-            >
-              {copied ? 'Kopierat ✓' : 'Kopiera text'}
-            </button>
-          </div>
+          </section>
         </div>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
-  )
+      </main>
+
+      {/* Sticky CTA — mobile only */}
+      <div
+        className="lg:hidden shrink-0 px-5 py-4 bg-surface space-y-3"
+        style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
+      >
+        <a
+          href={formValid ? mailtoHref : undefined}
+          onClick={!formValid ? (e) => e.preventDefault() : undefined}
+          className={`flex items-center justify-center gap-2 w-full text-label-lg font-bold py-3.5 rounded-xl text-center transition-all font-body ${
+            formValid
+              ? "bg-gradient-to-b from-primary to-primary-container text-white active:opacity-90 shadow-lg shadow-primary/20"
+              : "bg-surface-container-highest text-on-surface-variant cursor-not-allowed"
+          }`}
+        >
+          <span className="material-symbols-outlined text-lg">mail</span>
+          Skicka bokningsförfrågan
+        </a>
+      </div>
+    </div>
+  );
 }
 
 interface FieldProps {
-  label: string
-  value: string
-  placeholder: string
-  type?: string
-  onChange: (value: string) => void
+  label: string;
+  value: string;
+  placeholder: string;
+  type?: string;
+  onChange: (value: string) => void;
 }
 
-function Field({ label, value, placeholder, type = 'text', onChange }: FieldProps) {
+function Field({
+  label,
+  value,
+  placeholder,
+  type = "text",
+  onChange,
+}: FieldProps) {
   return (
     <div>
-      <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
+      <label className="block text-label-sm font-semibold text-on-surface-variant mb-1.5 font-body uppercase tracking-wider">
+        {label}
+      </label>
       <input
         type={type}
         value={value}
         placeholder={placeholder}
-        onChange={e => onChange(e.target.value)}
-        className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-800 bg-white placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full bg-surface-container-lowest rounded-md px-4 py-3 text-label-lg font-body text-on-surface placeholder:text-surface-variant focus:outline-none focus:ring-2 focus:ring-primary/30 shadow-ambient"
       />
     </div>
-  )
+  );
 }

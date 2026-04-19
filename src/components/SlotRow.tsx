@@ -1,56 +1,55 @@
-import { minToTime } from '../lib/schedule'
+import { minToTime } from "../lib/schedule";
 
 interface SlotRowProps {
-  type: 'free' | 'training' | 'match'
-  startMin: number
-  endMin: number
-  description?: string
-  onBook?: () => void
+  type: "free" | "training" | "match";
+  startMin: number;
+  endMin: number;
+  description?: string;
 }
 
-const STYLES = {
-  free:     'bg-green-50 border-l-4 border-green-400 text-green-900',
-  training: 'bg-gray-50 text-gray-600',
-  match:    'bg-orange-50 border-l-4 border-orange-300 text-orange-900',
-}
-
-const ICONS = {
-  free:     '🟢',
-  training: '🏃',
-  match:    '⚽',
-}
-
-export function SlotRow({ type, startMin, endMin, description, onBook }: SlotRowProps) {
-  const duration = endMin - startMin
-  const hours = Math.floor(duration / 60)
-  const mins = duration % 60
-  const durationLabel = [
-    hours > 0 && `${hours} h`,
-    mins > 0 && `${mins} min`,
-  ].filter(Boolean).join(' ')
-
-  return (
-    <div className={`flex items-center gap-3 px-3 py-2 rounded ${STYLES[type]}`}>
-      <span className="text-base leading-none" aria-hidden="true">{ICONS[type]}</span>
-      <div className="flex-1 min-w-0">
-        <span className="font-medium text-sm">
-          {minToTime(startMin)}–{minToTime(endMin)}
+export function SlotRow({
+  type,
+  startMin,
+  endMin,
+  description,
+}: SlotRowProps) {
+  if (type === "free") {
+    return (
+      <div className="flex items-center gap-1.5 py-2">
+        <span className="material-symbols-outlined text-primary text-sm shrink-0">
+          schedule
         </span>
-        {type === 'free' && (
-          <span className="ml-2 text-xs text-green-700">{durationLabel} ledig</span>
-        )}
-        {description && (
-          <p className="text-xs truncate mt-0.5 opacity-75">{description}</p>
-        )}
+        <span className="text-on-surface font-semibold text-sm font-body">
+          {minToTime(startMin)} — {minToTime(endMin)}
+        </span>
       </div>
-      {type === 'free' && onBook && (
-        <button
-          onClick={onBook}
-          className="shrink-0 bg-green-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg active:bg-green-700 hover:bg-green-700"
-        >
-          Förfrågan
-        </button>
+    );
+  }
+
+  // Training / Match — muted row
+  return (
+    <div className="py-2 opacity-60">
+      <div className="flex items-center gap-1.5">
+        <span className="material-symbols-outlined text-on-surface-variant text-sm shrink-0">
+          schedule
+        </span>
+        <span className="text-on-surface-variant font-medium text-sm font-body">
+          {minToTime(startMin)} — {minToTime(endMin)}
+        </span>
+      </div>
+      {description && (
+        <div className="flex items-center gap-1.5 mt-0.5 ml-5">
+          <span
+            className="material-symbols-outlined text-tertiary text-sm"
+            title="Fullbokad"
+          >
+            event_busy
+          </span>
+          <p className="text-xs text-on-surface-variant font-body truncate">
+            {description}
+          </p>
+        </div>
       )}
     </div>
-  )
+  );
 }

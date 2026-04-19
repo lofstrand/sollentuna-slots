@@ -1,22 +1,24 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import type { BookingFormState, SelectedSlot } from './types'
-import { getToday } from './lib/schedule'
+import { getToday, getMondayOf } from './lib/schedule'
 import { useLocalStorage } from './hooks/useLocalStorage'
 import { useBookings } from './hooks/useBookings'
 import { fetchFacilities } from './api/facilities'
-import { FACILITIES as FALLBACK_FACILITIES, FETCH_DAYS } from './constants'
+import { FACILITIES as FALLBACK_FACILITIES } from './constants'
 import { Header, type ViewMode } from './components/Header'
 import { FacilityPicker } from './components/FacilityPicker'
 import { ScheduleGrid } from './components/ScheduleGrid'
 import { CalendarView } from './components/CalendarView'
 import { BookingSheet } from './components/BookingSheet'
+import { LiveStatus } from './components/LiveStatus'
 
 const EMPTY_FORM: BookingFormState = {
   lagNamn: '',
   ledarNamn: '',
   ledarMail: '',
   ledarTel: '',
+  bokningsTyp: 'match',
 }
 
 export default function App() {
@@ -38,12 +40,13 @@ export default function App() {
   const [viewDate, setViewDate] = useState<Date>(getToday)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [selectedSlot, setSelectedSlot] = useState<SelectedSlot | null>(null)
-  const [viewMode, setViewMode] = useLocalStorage<ViewMode>('sbf_viewMode', 'list')
+  const [viewMode, setViewMode] = useLocalStorage<ViewMode>('sbf_viewMode', 'calendar')
   const [showBooked, setShowBooked] = useLocalStorage<boolean>('sbf_showBooked', false)
   const [showEmpty, setShowEmpty] = useLocalStorage<boolean>('sbf_showEmpty', true)
 
   // Centralized booking data — see src/hooks/useBookings.ts
   const { queries, isError, refetch } = useBookings({ facilityIds, viewDate })
+  const isAnyLoading = queries.some(q => q.isLoading)
 
   function handleNavigate(direction: -1 | 1) {
     setViewDate(prev => {
@@ -51,7 +54,7 @@ export default function App() {
       if (viewMode === 'calendar') {
         d.setMonth(d.getMonth() + direction)
       } else {
-        d.setDate(d.getDate() + direction * FETCH_DAYS)
+        d.setDate(d.getDate() + direction * 7)
       }
       return d
     })
@@ -71,7 +74,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-surface">
       <Header
         facilityIds={facilityIds}
         facilities={facilities}
@@ -88,11 +91,11 @@ export default function App() {
 
       {isError && (
         <div className="max-w-2xl lg:max-w-5xl mx-auto px-4 pt-3">
-          <div className="flex items-center justify-between gap-3 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">
+          <div className="flex items-center justify-between gap-3 bg-tertiary/5 text-tertiary text-label-md font-body px-4 py-3 rounded-md">
             <span>Kunde inte hämta tider. Kontrollera din anslutning.</span>
             <button
               onClick={() => refetch()}
-              className="shrink-0 font-semibold underline underline-offset-2 hover:text-red-900"
+              className="shrink-0 font-bold underline underline-offset-2 hover:opacity-80"
             >
               Försök igen
             </button>
@@ -106,7 +109,7 @@ export default function App() {
             queries={queries}
             facilityIds={facilityIds}
             facilities={facilities}
-            startDate={viewDate}
+            startDate={getMondayOf(viewDate)}
             dayFilter={listDayFilter}
             minDuration={minDuration}
             showBooked={showBooked}
@@ -147,6 +150,8 @@ export default function App() {
         onFormChange={setForm}
         onClose={() => setSelectedSlot(null)}
       />
+
+      <LiveStatus isLoading={isAnyLoading} />
     </div>
   )
 }
